@@ -350,3 +350,686 @@
         }
     }
 }
+
+{
+    "intents": [
+        {
+            "intent": "kelime_duzeltme_abonelik",
+            "correct_word": "abonelik",
+            "patterns": [
+                "abonelik",
+                "abonelk",
+                "abonlik",
+                "aboneilks",
+                "abonilik",
+                "abnolik",
+                "abonelek",
+                "abnelik",
+                "abneik",
+                "abonlıq",
+                "aboneik",
+                "abnelık",
+                "abonlikk"
+            ],
+            "response": "abonelik"
+        },
+        {
+            "intent": "kelime_duzeltme_fatura",
+            "correct_word": "fatura",
+            "patterns": [
+                "fatura",
+                "faturaa",
+                "ftura",
+                "fature",
+                "fatra",
+                "faturam",
+                "ftr",
+                "fatur",
+                "fture",
+                "fatüra"
+            ],
+            "response": "fatura"
+        },
+        {
+            "intent": "kelime_duzeltme_iptal",
+            "correct_word": "iptal",
+            "patterns": [
+                "iptal",
+                "ipta",
+                "iptall",
+                "ipdal",
+                "ıptal",
+                "ibdal",
+                "itpal",
+                "iptil",
+                "ipdtal"
+            ],
+            "response": "iptal"
+        },
+        {
+            "intent": "kelime_duzeltme_paket",
+            "correct_word": "paket",
+            "patterns": [
+                "paket",
+                "paked",
+                "pake",
+                "pkaet",
+                "pakeet",
+                "pakett",
+                "pket",
+                "pakit"
+            ],
+            "response": "paket"
+        },
+        {
+            "intent": "kelime_duzeltme_odeme",
+            "correct_word": "ödeme",
+            "patterns": [
+                "ödeme",
+                "odeme",
+                "ödemee",
+                "ödme",
+                "odm",
+                "oedeam",
+                "odemeh",
+                "odem"
+            ],
+            "response": "ödeme"
+        },
+        {
+            "intent": "kelime_duzeltme_hesap",
+            "correct_word": "hesap",
+            "patterns": [
+                "hesap",
+                "hesab",
+                "hsap",
+                "hespp",
+                "hesapa",
+                "hesup",
+                "hesapb"
+            ],
+            "response": "hesap"
+        },
+        {
+            "intent": "kelime_duzeltme_sifre",
+            "correct_word": "şifre",
+            "patterns": [
+                "şifre",
+                "sifre",
+                "sfre",
+                "şfre",
+                "şifere",
+                "sifere",
+                "sifrr"
+            ],
+            "response": "şifre"
+        },
+        {
+            "intent": "kelime_duzeltme_profil",
+            "correct_word": "profil",
+            "patterns": [
+                "profil",
+                "prfil",
+                "profıl",
+                "porfil",
+                "profilı",
+                "profl",
+                "prfl"
+            ],
+            "response": "profil"
+        },
+        {
+            "intent": "kelime_duzeltme_guncelleme",
+            "correct_word": "güncelleme",
+            "patterns": [
+                "güncelleme",
+                "guncelleme",
+                "gunceleme",
+                "guncellme",
+                "gunclleme",
+                "günceleme",
+                "guncellemm"
+            ],
+            "response": "güncelleme"
+        },
+        {
+            "intent": "kelime_duzeltme_destek",
+            "correct_word": "destek",
+            "patterns": [
+                "destek",
+                "destk",
+                "destekk",
+                "dstek",
+                "deştek",
+                "dastek"
+            ],
+            "response": "destek"
+        }
+    ]
+}
+
+{
+    "intents": [
+        {
+            "intent": "kelime_duzeltme_onay",
+            "correct_word": "onay",
+            "patterns": [
+                "onay",
+                "ony",
+                "onayy",
+                "onai",
+                "omay",
+                "onaye"
+            ],
+            "response": "onay"
+        },
+        {
+            "intent": "kelime_duzeltme_red",
+            "correct_word": "red",
+            "patterns": [
+                "red",
+                "redd",
+                "ret",
+                "rdd",
+                "rede"
+            ],
+            "response": "red"
+        },
+        {
+            "intent": "kelime_duzeltme_kimlik",
+            "correct_word": "kimlik",
+            "patterns": [
+                "kimlik",
+                "kmlik",
+                "kimlk",
+                "kımlık",
+                "kimlikk",
+                "kinlik"
+            ],
+            "response": "kimlik"
+        },
+        {
+            "intent": "kelime_duzeltme_guvenlik",
+            "correct_word": "güvenlik",
+            "patterns": [
+                "güvenlik",
+                "guvenlik",
+                "gvnlk",
+                "guvenlk",
+                "güvenlk",
+                "guvenlık"
+            ],
+            "response": "güvenlik"
+        },
+        {
+            "intent": "kelime_duzeltme_iade",
+            "correct_word": "iade",
+            "patterns": [
+                "iade",
+                "iadeer",
+                "iyade",
+                "iad",
+                "ıade",
+                "iadee"
+            ],
+            "response": "iade"
+        },
+        {
+            "intent": "kelime_duzeltme_degisiklik",
+            "correct_word": "değişiklik",
+            "patterns": [
+                "değişiklik",
+                "degisiklik",
+                "dgsıklık",
+                "degısıklık",
+                "degisklk",
+                "değisiklik"
+            ],
+            "response": "değişiklik"
+        },
+        {
+            "intent": "kelime_duzeltme_talep",
+            "correct_word": "talep",
+            "patterns": [
+                "talep",
+                "tlep",
+                "talepp",
+                "taleb",
+                "talp",
+                "talepb"
+            ],
+            "response": "talep"
+        },
+        {
+            "intent": "kelime_duzeltme_sikayet",
+            "correct_word": "şikayet",
+            "patterns": [
+                "şikayet",
+                "sikayet",
+                "şkyet",
+                "sikaye",
+                "şikaye",
+                "sıkayet"
+            ],
+            "response": "şikayet"
+        },
+        {
+            "intent": "kelime_duzeltme_kullanici",
+            "correct_word": "kullanıcı",
+            "patterns": [
+                "kullanıcı",
+                "kullanici",
+                "kulanici",
+                "kllnici",
+                "kullanicı",
+                "kullanıci"
+            ],
+            "response": "kullanıcı"
+        },
+        {
+            "intent": "kelime_duzeltme_bakiye",
+            "correct_word": "bakiye",
+            "patterns": [
+                "bakiye",
+                "bakye",
+                "bakıye",
+                "bakiyeer",
+                "baky"
+            ],
+            "response": "bakiye"
+        },
+        {
+            "intent": "kelime_duzeltme_kart",
+            "correct_word": "kart",
+            "patterns": [
+                "kart",
+                "kard",
+                "krt",
+                "kartt",
+                "kardd"
+            ],
+            "response": "kart"
+        },
+        {
+            "intent": "kelime_duzeltme_banka",
+            "correct_word": "banka",
+            "patterns": [
+                "banka",
+                "bnka",
+                "bankaa",
+                "banga",
+                "bamka"
+            ],
+            "response": "banka"
+        },
+        {
+            "intent": "kelime_duzeltme_gecmis",
+            "correct_word": "geçmiş",
+            "patterns": [
+                "geçmiş",
+                "gecmis",
+                "gcms",
+                "gecmış",
+                "geçmis"
+            ],
+            "response": "geçmiş"
+        },
+        {
+            "intent": "kelime_duzeltme_bildirim",
+            "correct_word": "duyuru",
+            "patterns": [
+                "duyuru",
+                "dyru",
+                "duyru",
+                "duyuruu",
+                "duyro"
+            ],
+            "response": "duyuru"
+        },
+        {
+            "intent": "kelime_duzeltme_sözlesme",
+            "correct_word": "onaylama",
+            "patterns": [
+                "onaylama",
+                "onaylma",
+                "onyma",
+                "onaylamak",
+                "onaylam"
+            ],
+            "response": "onaylama"
+        }
+    ]
+}
+{
+    "intents": [
+        {
+            "intent": "kelime_duzeltme_eposta",
+            "correct_word": "eposta",
+            "patterns": [
+                "eposta",
+                "e-posta",
+                "epsta",
+                "epost",
+                "eposda",
+                "ebosta",
+                "eposat"
+            ],
+            "response": "eposta"
+        },
+        {
+            "intent": "kelime_duzeltme_telefon",
+            "correct_word": "telefon",
+            "patterns": [
+                "telefon",
+                "tlfon",
+                "telefn",
+                "telfon",
+                "telefonn",
+                "tlefon",
+                "telfn"
+            ],
+            "response": "telefon"
+        },
+        {
+            "intent": "kelime_duzeltme_adres",
+            "correct_word": "adres",
+            "patterns": [
+                "adres",
+                "adrs",
+                "adress",
+                "adrese",
+                "adresi",
+                "adrse"
+            ],
+            "response": "adres"
+        },
+        {
+            "intent": "kelime_duzeltme_bildirim",
+            "correct_word": "bildirim",
+            "patterns": [
+                "bildirim",
+                "bldirim",
+                "bildrm",
+                "bildirimn",
+                "bildiri",
+                "bıldırım",
+                "bilf"
+            ],
+            "response": "bildirim"
+        },
+        {
+            "intent": "kelime_duzeltme_basvuru",
+            "correct_word": "başvuru",
+            "patterns": [
+                "başvuru",
+                "basvuru",
+                "bsvuru",
+                "basvro",
+                "başvru",
+                "basvuruu"
+            ],
+            "response": "başvuru"
+        },
+        {
+            "intent": "kelime_duzeltme_siparis",
+            "correct_word": "sipariş",
+            "patterns": [
+                "sipariş",
+                "siparis",
+                "spris",
+                "sipars",
+                "siparişh",
+                "siparişş"
+            ],
+            "response": "sipariş"
+        },
+        {
+            "intent": "kelime_duzeltme_sozlesme",
+            "correct_word": "sözleşme",
+            "patterns": [
+                "sözleşme",
+                "sozlesme",
+                "sozlesmeh",
+                "sozlesm",
+                "sozlme",
+                "şozleşme",
+                "sozlesmee"
+            ],
+            "response": "sözleşme"
+        },
+        {
+            "intent": "kelime_duzeltme_rapor",
+            "correct_word": "rapor",
+            "patterns": [
+                "rapor",
+                "rapr",
+                "rpor",
+                "rappor",
+                "raporr",
+                "raporu"
+            ],
+            "response": "rapor"
+        },
+        {
+            "intent": "kelime_duzeltme_tutanak",
+            "correct_word": "tutanak",
+            "patterns": [
+                "tutanak",
+                "tutnak",
+                "tutanaq",
+                "ttnak",
+                "tutanag",
+                "tutana"
+            ],
+            "response": "tutanak"
+        },
+        {
+            "intent": "kelime_duzeltme_destek",
+            "correct_word": "destek",
+            "patterns": [
+                "destek",
+                "destk",
+                "destekk",
+                "dstek",
+                "deştek",
+                "dastek"
+            ],
+            "response": "destek"
+        },
+        {
+            "intent": "kelime_duzeltme_onay",
+            "correct_word": "onay",
+            "patterns": [
+                "onay",
+                "ony",
+                "onayy",
+                "onai",
+                "omay",
+                "onaye"
+            ],
+            "response": "onay"
+        },
+        {
+            "intent": "kelime_duzeltme_kimlik",
+            "correct_word": "kimlik",
+            "patterns": [
+                "kimlik",
+                "kmlik",
+                "kimlk",
+                "kımlık",
+                "kimlikk",
+                "kinlik"
+            ],
+            "response": "kimlik"
+        },
+        {
+            "intent": "kelime_duzeltme_iade",
+            "correct_word": "iade",
+            "patterns": [
+                "iade",
+                "iadeer",
+                "iyade",
+                "iad",
+                "ıade",
+                "iadee"
+            ],
+            "response": "iade"
+        },
+        {
+            "intent": "kelime_duzeltme_talep",
+            "correct_word": "talep",
+            "patterns": [
+                "talep",
+                "tlep",
+                "talepp",
+                "taleb",
+                "talp",
+                "talepb"
+            ],
+            "response": "talep"
+        },
+        {
+            "intent": "kelime_duzeltme_degisiklik",
+            "correct_word": "değişiklik",
+            "patterns": [
+                "değişiklik",
+                "degisiklik",
+                "dgsıklık",
+                "degısıklık",
+                "degisklk",
+                "değisiklik"
+            ],
+            "response": "değişiklik"
+        },
+        {
+            "intent": "kelime_duzeltme_duyuru",
+            "correct_word": "duyuru",
+            "patterns": [
+                "duyuru",
+                "dyru",
+                "duyru",
+                "duyuruu",
+                "duyro",
+                "duyri"
+            ],
+            "response": "duyuru"
+        },
+        {
+            "intent": "kelime_duzeltme_kampanya",
+            "correct_word": "kampanya",
+            "patterns": [
+                "kampanya",
+                "kmpnya",
+                "kampanaya",
+                "kampanyaa",
+                "kanpanya",
+                "kampnya"
+            ],
+            "response": "kampanya"
+        },
+        {
+            "intent": "kelime_duzeltme_sepet",
+            "correct_word": "sepet",
+            "patterns": [
+                "sepet",
+                "spt",
+                "seped",
+                "sepett",
+                "sepeti",
+                "sepetm"
+            ],
+            "response": "sepet"
+        },
+        {
+            "intent": "kelime_duzeltme_kesfet",
+            "correct_word": "keşfet",
+            "patterns": [
+                "keşfet",
+                "kesfet",
+                "ksft",
+                "kesfed",
+                "keşfed",
+                "kesfetm"
+            ],
+            "response": "keşfet"
+        },
+        {
+            "intent": "kelime_duzeltme_islem",
+            "correct_word": "işlem",
+            "patterns": [
+                "işlem",
+                "islem",
+                "islm",
+                "işlemı",
+                "isleme",
+                "işlemm"
+            ],
+            "response": "işlem"
+        },
+        {
+            "intent": "kelime_duzeltme_ekle",
+            "correct_word": "ekle",
+            "patterns": [
+                "ekle",
+                "eklee",
+                "ekl",
+                "elke",
+                "ekel",
+                "eklem"
+            ],
+            "response": "ekle"
+        },
+        {
+            "intent": "kelime_duzeltme_bakiye",
+            "correct_word": "bakiye",
+            "patterns": [
+                "bakiye",
+                "bakye",
+                "bakıye",
+                "bakiyeer",
+                "baky",
+                "bakyei"
+            ],
+            "response": "bakiye"
+        },
+        {
+            "intent": "kelime_duzeltme_test",
+            "correct_word": "test",
+            "patterns": [
+                "test",
+                "tst",
+                "testt",
+                "tesst",
+                "testi",
+                "tezst"
+            ],
+            "response": "test"
+        },
+        {
+            "intent": "kelime_duzeltme_transfer",
+            "correct_word": "transfer",
+            "patterns": [
+                "transfer",
+                "trnsfr",
+                "transfr",
+                "transfe",
+                "trasfer",
+                "transferr"
+            ],
+            "response": "transfer"
+        },
+        {
+            "intent": "kelime_duzeltme_satin_alma",
+            "correct_word": "satın alma",
+            "patterns": [
+                "satın alma",
+                "satin alma",
+                "satinalma",
+                "stn alma",
+                "satınalma",
+                "satin al"
+            ],
+            "response": "satın alma"
+        }
+    ]
+}
