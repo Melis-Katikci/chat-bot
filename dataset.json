@@ -1,0 +1,352 @@
+{
+    "intents": [
+        {
+            "intent": "profil_bilgileri_goruntuleme",
+            "patterns": [
+                "profilimi görmek istiyorum",
+                "hesap bilgilerim nerede",
+                "profil bilgilerime nasıl bakarım",
+                "kullanıcı bilgilerimi göster",
+                "hesabımı görüntülemek istiyorum",
+                "profil sayfamı açar mısın",
+                "kişisel bilgilerimi kontrol etmek istiyorum",
+                "hesap detaylarıma bakacaktım",
+                "profilimde ne yazıyor"
+            ],
+            "response": "Profil > Hesap Bilgilerim bölümünden profil detaylarınızı görüntüleyebilirsiniz."
+        },
+        {
+            "intent": "profil_guncelleme",
+            "patterns": [
+                "profilimi güncellemek istiyorum",
+                "numaramı değiştireceğim",
+                "telefon numaramı nasıl güncellerim",
+                "eposta adresimi değiştirmek istiyorum",
+                "hesap bilgilerimi düzenle",
+                "şifremi nasıl yenilerim",
+                "profil bilgilerimi değiştirmek istiyorum",
+                "adresimi güncellemek istiyorum",
+                "bilgilerimi nasıl düzenleyebilirim"
+            ],
+            "response": "Profil > Ayarlar > Bilgileri Güncelle bölümünden değişikliklerinizi yapabilirsiniz."
+        },
+        {
+            "intent": "abonelik_listeleme",
+            "patterns": [
+                "aktif aboneliklerimi göster",
+                "hangi üyeliklerim var",
+                "kaç tane aboneliğim bulunuyor",
+                "mevcut paketlerimi listele",
+                "aboneliklerimi görmek istiyorum",
+                "kayıtlı servislerim neler",
+                "üye olduğum hizmetleri göster",
+                "aktif paketlerim nerede yazıyor",
+                "tüm aboneliklerimi listeler misin"
+            ],
+            "response": "Aboneliklerim > Aktif Abonelikler sayfasından tüm listeye ulaşabilirsiniz."
+        },
+        {
+            "intent": "abonelik_iptali",
+            "patterns": [
+                "aboneliğimi iptal etmek istiyorum",
+                "üyeliğimi nasıl sonlandırırım",
+                "paketi kapatmak istiyorum",
+                "servis iptali nasıl yapılır",
+                "abonelik sonlandırma işlemi",
+                "bu hizmeti iptal et",
+                "üyelikten çıkmak istiyorum",
+                "aboneliğimi nasıl silerim",
+                "paket iptal etme menüsü nerede"
+            ],
+            "response": "Aboneliklerim > İşlemler > Abonelik İptal Et adımlarını takip edebilirsiniz."
+        },
+        {
+            "intent": "fatura_gecmisi",
+            "patterns": [
+                "eski faturalarımı görmek istiyorum",
+                "geçmiş faturalarımı listele",
+                "geçen ayın faturası ne kadardı",
+                "fatura geçmişime nasıl bakarım",
+                "eski ödemelerimi kontrol etmek istiyorum",
+                "makbuzlarımı nereden indiririm",
+                "ödediğim faturaların listesi",
+                "geçmiş dönem borçlarımı göster",
+                "fatura dökümümü istiyorum"
+            ],
+            "response": "İşlemler > Fatura Geçmişi bölümünden eski faturalarınızı inceleyebilirsiniz."
+        },
+        {
+            "intent": "odeme_yontemi_ekle",
+            "patterns": [
+                "yeni kart eklemek istiyorum",
+                "kredi kartımı nasıl tanımlarım",
+                "ödeme yöntemi ekle",
+                "kart bilgisi kaydetme",
+                "yeni bir banka kartı ekleyeceğim",
+                "ödeme aracı tanımlamak istiyorum",
+                "hesap kartı ekleme nerede",
+                "farklı bir kart kaydetmek istiyorum",
+                "sisteme nasıl kart eklerim"
+            ],
+            "response": "Profil > Ödeme Yöntemlerim > Kart Ekle butonunu kullanabilirsiniz."
+        },
+        {
+            "intent": "destek_talebi",
+            "patterns": [
+                "yardım almak istiyorum",
+                "müşteri hizmetlerine nasıl bağlanırım",
+                "destek talebi oluşturmak istiyorum",
+                "bir sorun yaşıyorum destek lazım",
+                "canlı desteğe nasıl yazarım",
+                "şikayet kaydı açmak istiyorum",
+                "hata bildirimi yapacağım",
+                "yardım menüsü nerede",
+                "biriyle görüşmek istiyorum"
+            ],
+            "response": "İşlemler > Yardım ve Destek > Canlı Destek / Talep Oluştur adımlarını kullanabilirsiniz."
+        }
+    ],
+
+    "synonyms": {
+        "abonelik": [
+            "abone",
+            "üyelik",
+            "paket",
+            "servis",
+            "hizmet"
+        ],
+        "profil": [
+            "hesabım",
+            "hesap",
+            "profilim",
+            "kullanıcı bilgileri"
+        ],
+        "güncelleme": [
+            "düzenleme",
+            "değiştirme",
+            "yenileme",
+            "gönderim"
+        ],
+        "fatura": [
+            "borç",
+            "ödemeler",
+            "makbuz",
+            "hesap özeti"
+        ],
+        "kart": [
+            "kredi kartı",
+            "banka kartı",
+            "ödeme yöntemi",
+            "hesap kartı"
+        ],
+        "destek": [
+            "yardım",
+            "müşteri hizmetleri",
+            "talep",
+            "şikayet"
+        ]
+    },
+
+    "homonyms": {
+        "yüz": {
+            "anlam_1": {
+                "tanım": "Sayı olan 100",
+                "cümle": "Cüzdanında tam yüz lira kalmıştı."
+            },
+            "anlam_2": {
+                "tanım": "Çehre, surat, sima",
+                "cümle": "Soğuktan dolayı yüzü kıpkırmızı olmuştu."
+            }
+        },
+        "çay": {
+            "anlam_1": {
+                "tanım": "Sıcak içecek",
+                "cümle": "Akşam yemeğinden sonra tavşan kanı bir çay içtik."
+            },
+            "anlam_2": {
+                "tanım": "Küçük akarsu, dere",
+                "cümle": "Köyün yanındaki çayda taş sektirmece oynardık."
+            }
+        },
+        "gül": {
+            "anlam_1": {
+                "tanım": "Dikenli güzel kokulu çiçek",
+                "cümle": "Bahçeden kopardığı kırmızı gülü masaya bıraktı."
+            },
+            "anlam_2": {
+                "tanım": "Gülmek fiili",
+                "cümle": "Anlattığı fıkraya salondaki herkes kahkahalarla güldü."
+            }
+        },
+        "yaz": {
+            "anlam_1": {
+                "tanım": "Sıcak mevsim",
+                "cümle": "Bu yaz tatilinde Antalya'ya gitmeyi planlıyoruz."
+            },
+            "anlam_2": {
+                "tanım": "Yazmak eylemi",
+                "cümle": "Ödevlerini bitirmek için defterine hızlıca yazdı."
+            }
+        },
+        "kar": {
+            "anlam_1": {
+                "tanım": "Kışın yağan beyaz yağış",
+                "cümle": "Ocak ayında şehre ilk kar lapa lapa yağdı."
+            },
+            "anlam_2": {
+                "tanım": "Ticari kazanç, fayda",
+                "cümle": "Şirket bu yıl yaptığı satışlardan büyük kar elde etti."
+            }
+        },
+        "al": {
+            "anlam_1": {
+                "tanım": "Kırmızı renk",
+                "cümle": "Ay yıldızlı al bayrağımız göklerde dalgalanıyor."
+            },
+            "anlam_2": {
+                "tanım": "Satın almak veya eline almak fiili",
+                "cümle": "Marketten taze ekmek alıp eve doğru yürüdü."
+            }
+        },
+        "kaz": {
+            "anlam_1": {
+                "tanım": "Perde ayaklı bir kuş türü",
+                "cümle": "Göl kenarında yürüyen kazlar yeşilliklerde besleniyordu."
+            },
+            "anlam_2": {
+                "tanım": "Toprağı eşelemek, çukur açmak fiili",
+                "cümle": "Fidan dikmek için bahçedeki toprağı derinlemesine kazdı."
+            }
+        },
+        "at": {
+            "anlam_1": {
+                "tanım": "Binek hayvanı",
+                "cümle": "Çiftlikteki beyaz ata binip arazide tur attı."
+            },
+            "anlam_2": {
+                "tanım": "Fırlatmak eylemi",
+                "cümle": "Elindeki çöpü sokaktaki geri dönüşüm kutusuna at."
+            }
+        },
+        "saç": {
+            "anlam_1": {
+                "tanım": "Başın üzerindeki kıllar",
+                "cümle": "Kuaföre gidip uzun saçlarını biraz kestirdi."
+            },
+            "anlam_2": {
+                "tanım": "Etrafa dağıtmak, yaymak fiili",
+                "cümle": "Düğünde çiftin üzerine doğru paraları saçtılar."
+            }
+        },
+        "bin": {
+            "anlam_1": {
+                "tanım": "Sayı olan 1000",
+                "cümle": "Yarışmayı kazanınca tam bin dolar ödül aldı."
+            },
+            "anlam_2": {
+                "tanım": "Bir taşıta yerleşmek fiili",
+                "cümle": "Sabah işe geç kalmamak için hemen otobüse bindi."
+            }
+        },
+        "bel": {
+            "anlam_1": {
+                "tanım": "İnsan vücudunun orta kısmı",
+                "cümle": "Ağır yük kaldırdığı için beli feci şekilde ağrıyordu."
+            },
+            "anlam_2": {
+                "tanım": "Toprak işlemeye yarayan kürek benzeri alet",
+                "cümle": "Bahçeyi bellemek için depodan paslı beli çıkardı."
+            }
+        },
+        "kol": {
+            "anlam_1": {
+                "tanım": "İnsan vücudu uzvu",
+                "cümle": "Düşüp kolunu kırdığı için alçıya almak zorunda kaldılar."
+            },
+            "anlam_2": {
+                "tanım": "Makine veya kapı tutamağı",
+                "cümle": "Kapının kolunu yavaşça aşağı indirip içeri sızdı."
+            }
+        },
+        "dal": {
+            "anlam_1": {
+                "tanım": "Ağacın gövdesinden ayrılan kısımlar",
+                "cümle": "Kuşlar bahçedeki ağacın ince dalına yuva yapmıştı."
+            },
+            "anlam_2": {
+                "tanım": "Uzmanlık alanı, bilim kolu",
+                "cümle": "Tıp fakültesini bitirince kardiyoloji dalında uzmanlaştı."
+            }
+        },
+        "dil": {
+            "anlam_1": {
+                "tanım": "Ağız içindeki tat alma organı",
+                "cümle": "Çok sıcak çorba içtiği için dili hafifçe yandı."
+            },
+            "anlam_2": {
+                "tanım": "İnsanların anlaştığı konuşma sistemi",
+                "cümle": "Kendini geliştirmek için yeni bir yabancı dil öğreniyor."
+            }
+        },
+        "göz": {
+            "anlam_1": {
+                "tanım": "Görme organı",
+                "cümle": "Kitap okurken gözleri yorulduğu için dinlenmeye çekildi."
+            },
+            "anlam_2": {
+                "tanım": "Çekmece veya iğne deliği gibi bölmeler",
+                "cümle": "Masanın sağ gözünde eski anahtarları aradı."
+            }
+        },
+        "kır": {
+            "anlam_1": {
+                "tanım": "Şehir dışı, yeşillik alan",
+                "cümle": "Hafta sonu temiz hava almak için kırlara pikniğe gittik."
+            },
+            "anlam_2": {
+                "tanım": "Parçalamak, bozmak eylemi",
+                "cümle": "Dikkatsizlik yüzünden elindeki en sevdiği bardağı kırdı."
+            }
+        },
+        "oy": {
+            "anlam_1": {
+                "tanım": "Seçimlerde verilen tercih hakkı",
+                "cümle": "Vatandaşlık görevini yerine getirmek için sandıkta oy kullandı."
+            },
+            "anlam_2": {
+                "tanım": "Oymak, içini boşaltmak eylemi",
+                "cümle": "Ahşap bloğu keskiyle oyup güzel bir heykel yaptı."
+            }
+        },
+        "yat": {
+            "anlam_1": {
+                "tanım": "Lüks deniz taşıtı, gemi",
+                "cümle": "Zengin iş adamı yeni aldığı yat ile koya demirledi."
+            },
+            "anlam_2": {
+                "tanım": "Uyumak veya uzanmak fiili",
+                "cümle": "Yarın sabah erken kalkacağı için erkenden yatağa yattı."
+            }
+        },
+        "çek": {
+            "anlam_1": {
+                "tanım": "Banka ödeme belgesi",
+                "cümle": "Mal alımı karşılığında satıcıya yüklü miktarda bir çek yazdı."
+            },
+            "anlam_2": {
+                "tanım": "Bir şeyi kendine doğru sürüklemek fiili",
+                "cümle": "Halatı tüm gücüyle kendine doğru çekmeye çalıştı."
+            }
+        },
+        "ocak": {
+            "anlam_1": {
+                "tanım": "Yılın ilk ayı",
+                "cümle": "Ocak ayında buralara çok şiddetli soğuklar gelir."
+            },
+            "anlam_2": {
+                "tanım": "Yemek pişirilen mutfak aleti",
+                "cümle": "Yemeğin altını kapatmak için ocağın düğmesini çevirdi."
+            }
+        }
+    }
+}

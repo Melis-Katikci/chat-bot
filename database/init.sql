@@ -15,7 +15,9 @@ CREATE TABLE users (
 );
 
 -- ===========================================
--- CHAT_LOGS TABLOSU
+-- CHAT LOGS TABLOSU
+-- Kullanıcının sorduğu her soru ve chatbotun
+-- verdiği her cevap burada saklanır.
 -- ===========================================
 
 CREATE TABLE chat_logs (
@@ -33,7 +35,24 @@ CREATE TABLE chat_logs (
 );
 
 -- ===========================================
--- SUPPORT_FORMS TABLOSU
+-- FAQ TABLOSU
+-- Her gün saat 00:00'da Chat Logs analiz edilir.
+-- Aynı chatbot cevabını dönen kayıtlar sayılır.
+-- En yüksek kullanım sayısına sahip ilk 3 kayıt
+-- bu tabloya eklenir veya güncellenir.
+-- ===========================================
+
+CREATE TABLE faq (
+    id SERIAL PRIMARY KEY,
+    question TEXT NOT NULL,
+    answer TEXT NOT NULL,
+    usage_count INT NOT NULL DEFAULT 1
+);
+
+-- ===========================================
+-- SUPPORT FORMS TABLOSU
+-- Chatbotun çözemediği durumlarda kullanıcının
+-- oluşturduğu destek talepleri tutulur.
 -- ===========================================
 
 CREATE TABLE support_forms (
@@ -49,19 +68,6 @@ CREATE TABLE support_forms (
         FOREIGN KEY (user_id)
         REFERENCES users(id)
         ON DELETE CASCADE
-);
-
--- ===========================================
--- FAQ TABLOSU
--- ===========================================
-
-CREATE TABLE faq (
-    id SERIAL PRIMARY KEY,
-    question TEXT NOT NULL,
-    answer TEXT NOT NULL,
-    usage_count INT DEFAULT 1,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- ===========================================
