@@ -9,7 +9,6 @@ from pypdf import PdfReader
 import nltk
 import datetime
 
-# FastAPI ve Uvicorn Bağımlılıkları
 from fastapi import FastAPI
 from pydantic import BaseModel
 import uvicorn
@@ -19,17 +18,14 @@ nltk.download('punkt_tab', quiet=True)
 analyzer = zeyrek.MorphAnalyzer()
 
 def metin_koku_bul(metin):
-    # Metindeki noktalama işaretlerini temizleyip küçük harfe çevirir
     temiz_metin = re.sub(r'[^\w\s]', '', metin).lower()
-    
-    # Zeyrek ile kelimelerin kökünü buluruz
     analiz_sonucu = analyzer.lemmatize(temiz_metin)
     kokler = []
     
     for kelime_analizi in analiz_sonucu:
-        if kelime_analizi[1]: # Eğer bir kök bulduysa ilk kökü al
+        if kelime_analizi[1]: 
             kokler.append(kelime_analizi[1][0])
-        else: # Kök bulamadıysa kelimenin orijinalini bırak
+        else: 
             kokler.append(kelime_analizi[0])
             
     return " ".join(kokler)
@@ -38,18 +34,16 @@ def soru_mantikli_mi(soru):
     temiz_soru = re.sub(r'[^\w\s]', '', soru).lower()
     kelimeler = temiz_soru.split()
     
-    if not kelimeler: # Eğer sadece boşluk atıldıysa
+    if not kelimeler: 
         return False
         
     sesliler = "aeıioöuü"
     gecerli_kelime_sayisi = 0
     
     for kelime in kelimeler:
-        # Kelimenin içinde en az 1 sesli harf varsa veya çok kısaysa geçerli say
         if any(harf in sesliler for harf in kelime) or len(kelime) <= 2:
             gecerli_kelime_sayisi += 1
             
-    # Eğer cümlenin yarısından fazlası sesli harf içermeyen saçma kelimelerdense
     if (gecerli_kelime_sayisi / len(kelimeler)) < 0.5:
         return False
         
@@ -64,7 +58,7 @@ def yazim_duzelt(metin):
         if kelime in pdf_kelime_havuzu:
             duzeltilmis_kelimeler.append(kelime)
         else:
-            benzerler = difflib.get_close_matches(kelime, pdf_kelime_havuzu, n=1, cutoff=0.6)
+            benzerler = difflib.get_close_matches(kelime, pdf_kelime_havuzu, n=1, cutoff=0.8)
             if benzerler:
                 duzeltilmis_kelimeler.append(benzerler[0])
             else:
@@ -72,7 +66,7 @@ def yazim_duzelt(metin):
                 duzeltilmis_kelimeler.append(kelime)
                 
     cok_yanlis_mi = False
-    if len(kelimeler) > 0 and (bilinmeyen_kelime_sayisi / len(kelimeler)) > 0.5:
+    if len(kelimeler) > 0 and (bilinmeyen_kelime_sayisi / len(kelimeler)) >= 0.5:
         cok_yanlis_mi = True
             
     return " ".join(duzeltilmis_kelimeler), cok_yanlis_mi
@@ -122,7 +116,6 @@ print(f"-> PDF'ten toplam {len(temiz_maddeler)} adet madde çıkarıldı.\n")
 # ==========================================
 for i, madde_metni in enumerate(temiz_maddeler):
     kok_metin = metin_koku_bul(madde_metni)
-    vektor = embedding_model([kok_metin])[0]
     
     doc_id = f"madde_{i+1}"
     collection.upsert(
@@ -133,20 +126,40 @@ for i, madde_metni in enumerate(temiz_maddeler):
 print("VEKTÖR HAVUZU BAŞARIYLA HAZIRLANDI VE KAYDEDİLDİ!\n")
 
 # ==========================================
+# MÜŞTERİ HİZMETLERİ YÖNLENDİRME FONKSİYONU
+# ==========================================
+def musteri_hizmetlerine_yonlendir():
+    su_an = datetime.datetime.now()
+    haftanin_gunu = su_an.weekday() 
+    saat = su_an.hour
+    
+    if haftanin_gunu <= 4 and 9 <= saat < 18:
+        return "Müşteri hizmetlerimize 0850 XXX XX XX numaralı telefondan ulaşabilirsiniz."
+    else:
+        return "Şu an mesai saatleri (Hafta içi 09:00 - 18:00) dışındayız. E-posta yollayarak en kısa sürede size geri dönüş yapılmasını sağlayabilirsiniz."
 
+basarisiz_deneme_sayisi = 0
+
+# ==========================================
 # 4. AŞAMA: MERKEZİ RAG MOTORU
 # ==========================================
 def cevabi_getir(kullanici_sorusu: str) -> str:
-    """Hem API hem de genel aramalar için ortak RAG cevap fonksiyonu"""
-    temiz_kullanici_sorusu = re.sub(r'[^\w\s]', '', kullanici_sorusu).lower()
+    global basarisiz_deneme_sayisi
     
-    if not temiz_kullanici_sorusu:
-        return "Eksik veya hatalı yazdınız lütfen bir daha deneyiniz."
+    temiz_kullanici_sorusu = re.sub(r'[^\w\s]', '', kullanici_sorusu).lower()
+
+    if not temiz_kullanici_sorusu:                              
+        return "Lütfen bir daha sorun, daha açıklayıcı ifadeler kullanın."
 
     duzeltilmis_soru, cok_yanlis_mi = yazim_duzelt(temiz_kullanici_sorusu)
     
     if cok_yanlis_mi or not soru_mantikli_mi(duzeltilmis_soru):
-        return "Eksik veya hatalı yazdınız lütfen bir daha deneyiniz."
+        basarisiz_deneme_sayisi += 1
+        if basarisiz_deneme_sayisi >= 3:
+            yonlendirme = musteri_hizmetlerine_yonlendir()
+            basarisiz_deneme_sayisi = 0
+            return f"Üzgünüm, sorunuzu anlamakta zorlanıyorum. {yonlendirme}"
+        return "Lütfen bir daha sorun, daha açıklayıcı ifadeler kullanın."
         
     temiz_soru = metin_koku_bul(duzeltilmis_soru)
     e5_formatli_soru = f"query: {temiz_soru}"
@@ -155,36 +168,117 @@ def cevabi_getir(kullanici_sorusu: str) -> str:
         query_texts=[e5_formatli_soru],
         n_results=1 
     )
-    
+
     if sonuclar['documents'] and len(sonuclar['documents'][0]) > 0:
         bulunan_cevap = sonuclar['documents'][0][0]
         mesafe = sonuclar['distances'][0][0] 
         
-        if mesafe > 0.30:
-            return "Üzgünüm, kılavuzda bu soruyla ilgili spesifik bir bilgi bulamadım."
+        if mesafe > 0.16:
+            basarisiz_deneme_sayisi += 1
+            if basarisiz_deneme_sayisi >= 3:
+                yonlendirme = musteri_hizmetlerine_yonlendir()
+                basarisiz_deneme_sayisi = 0
+                return f"Kılavuzda bu konuyla ilgili eşleşen bir bilgi bulamadım. {yonlendirme}"
+            return "Lütfen bir daha sorun, sorunuzu daha açıklayıcı yazın."
         else:
-            insansi_cevap = re.sub(r'(?i)^\s*madde\s*\d*\s*[.:-]?\s*', '', bulunan_cevap)
+            basarisiz_deneme_sayisi = 0 
+            insansi_cevap = re.sub(r'(?i)^\s*madde\s*\d*\s*(f[ıi]kra\s*\d*)?\s*[.:;,-]?\s*', '', bulunan_cevap)
+            insansi_cevap = re.split(r'(?i)\s*(?=\bMADDE\s+\d+\b|\bFIKRA\s+\d+\b)', insansi_cevap)[0]
             return insansi_cevap.strip()
     else:
         return "Veritabanında arama yapılamadı."
 
 # ==========================================
-# 5. AŞAMA: FASTAPI WEB SERVİS KATMANI
+# 5. AŞAMA: FASTAPI WEB SERVİS KATMANI VE OTURUM YÖNETİMİ
 # ==========================================
 app = FastAPI(title="Chatbot RAG API")
 
+kullanici_oturum_durumu = {}
+
+def evet_hayir_analiz_et(mesaj):
+    gecerli_cevaplar = ["evet", "hayır", "hayir", "yes", "no"]
+    
+    if mesaj not in gecerli_cevaplar:
+        benzerler = difflib.get_close_matches(mesaj, gecerli_cevaplar, n=1, cutoff=0.5)
+        if benzerler:
+            mesaj = benzerler[0]
+            
+    if mesaj == "hayir":
+        mesaj = "hayır"
+        
+    return mesaj
+
 class SoruIstek(BaseModel):
-    soru: str
+    kullanici_id: str = "kullanici_1" 
+    mesaj: str 
 
 @app.post("/api/rag/sor")
 def rag_soru_sor(istek: SoruIstek):
-    cevap = cevabi_getir(istek.soru)
-    return {"cevap": cevap}
+    k_id = istek.kullanici_id
+    mesaj = istek.mesaj.strip().lower()
+
+    if k_id not in kullanici_oturum_durumu:
+        kullanici_oturum_durumu[k_id] = {"durum": "soru_bekliyor", "hata_sayisi": 0}
+
+    oturum = kullanici_oturum_durumu[k_id]
+
+    if oturum["durum"] == "yanit_yeterli_mi_bekliyor":
+        analiz_edilen_mesaj = evet_hayir_analiz_et(mesaj)
+        
+        if analiz_edilen_mesaj in ["evet", "yes"]:
+            oturum["durum"] = "baska_soru_var_mi_bekliyor"
+            oturum["hata_sayisi"] = 0
+            return {"cevap": "Yardımcı olmamı istediğiniz başka bir konu var mı? (Evet/Hayır)"}
+        
+        elif analiz_edilen_mesaj in ["hayır", "no"]:
+            oturum["durum"] = "soru_bekliyor"
+            oturum["hata_sayisi"] = 0
+            yonlendirme = musteri_hizmetlerine_yonlendir()
+            return {"cevap": f"Anladım, size daha iyi destek olabilmemiz için {yonlendirme}"}
+        
+        else:
+            oturum["hata_sayisi"] += 1
+            if oturum["hata_sayisi"] >= 3:
+                oturum["durum"] = "soru_bekliyor" 
+                oturum["hata_sayisi"] = 0
+                return {"cevap": "Geçersiz girişler yaptınız. Daha sonra tekrar soru sorabilirsiniz."}
+            return {"cevap": "Lütfen sadece 'Evet' veya 'Hayır' yazınız."}
+
+    elif oturum["durum"] == "baska_soru_var_mi_bekliyor":
+        analiz_edilen_mesaj = evet_hayir_analiz_et(mesaj)
+        
+        if analiz_edilen_mesaj in ["evet", "yes"]:
+            oturum["durum"] = "soru_bekliyor"
+            oturum["hata_sayisi"] = 0
+            return {"cevap": "Lütfen sormak istediğiniz yeni soruyu yazınız."}
+        
+        elif analiz_edilen_mesaj in ["hayır", "no"]:
+            oturum["durum"] = "soru_bekliyor"
+            oturum["hata_sayisi"] = 0
+            return {"cevap": "Görüşmek üzere! İyi günler dileriz."}
+        
+        else:
+            oturum["hata_sayisi"] += 1
+            if oturum["hata_sayisi"] >= 3:
+                oturum["durum"] = "soru_bekliyor" 
+                oturum["hata_sayisi"] = 0
+                return {"cevap": "Geçersiz girişler yaptınız. Daha sonra tekrar soru sorabilirsiniz."}
+            return {"cevap": "Lütfen sadece 'Evet' veya 'Hayır' yazınız."}
+
+    else:
+        cevap = cevabi_getir(mesaj)
+        
+        hata_kelimeleri = ["Lütfen bir daha", "Üzgünüm", "Kılavuzda", "Veritabanında"]
+        basarili_bir_cevap_mi = not any(hata in cevap for hata in hata_kelimeleri)
+
+        if basarili_bir_cevap_mi:
+            oturum["durum"] = "yanit_yeterli_mi_bekliyor"
+            return {"cevap": f"{cevap}\n\nBu yanıt yeterli oldu mu? (Evet/Hayır)"}
+        else:
+            return {"cevap": cevap}
 
 # ==========================================
 # 6. AŞAMA: SERVİSİ BAŞLATMA
 # ==========================================
 if __name__ == "__main__":
-    # Spring Boot ile haberleşmek üzere Port 8000 üzerinde dinlemeye geçer
     uvicorn.run(app, host="127.0.0.1", port=8000)
-
