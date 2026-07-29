@@ -7,6 +7,7 @@ import logging
 from chromadb.utils import embedding_functions
 from pypdf import PdfReader
 import nltk
+import datetime
 
 # FastAPI ve Uvicorn Bağımlılıkları
 from fastapi import FastAPI
@@ -132,6 +133,7 @@ for i, madde_metni in enumerate(temiz_maddeler):
 print("VEKTÖR HAVUZU BAŞARIYLA HAZIRLANDI VE KAYDEDİLDİ!\n")
 
 # ==========================================
+
 # 4. AŞAMA: MERKEZİ RAG MOTORU
 # ==========================================
 def cevabi_getir(kullanici_sorusu: str) -> str:
@@ -185,3 +187,4 @@ def rag_soru_sor(istek: SoruIstek):
 if __name__ == "__main__":
     # Spring Boot ile haberleşmek üzere Port 8000 üzerinde dinlemeye geçer
     uvicorn.run(app, host="127.0.0.1", port=8000)
+
