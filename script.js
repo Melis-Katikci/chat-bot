@@ -18,7 +18,7 @@ function isWorkingHours() {
 
 let waitingForConsent = false;
 
-// 3. Mesaj Gönderme ve Form Yönlendirme Mantığı
+// 3. Mesaj Gönderme ve Form Yönlendirme Mantığı 
 function sendMessage() {
     const inputField = document.getElementById('user-input');
     const chatBox = document.getElementById('chat-box');
