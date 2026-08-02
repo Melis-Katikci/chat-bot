@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chatbot Destek Widget</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <!-- Ekranın Sağ Altındaki Buton -->
+    <button id="chat-toggle-btn" onclick="toggleChat()">💬 Canlı Destek</button>
+
+    <!-- Sabit Chatbot ve Form Penceresi -->
+    <div id="chat-widget" class="chat-widget hidden">
+        <div class="chat-header">
+            <span>AboneSepeti Destek</span>
+            <button class="close-btn" onclick="toggleChat()">✖</button>
+        </div>
+
+        <!-- Chat Sohbet Ekranı -->
+        <div id="chat-body">
+            <div id="chat-box" class="chat-box">
+                <div class="bot-msg">Merhaba! Size nasıl yardımcı olabilirim?</div>
+            </div>
+            <div class="chat-input-area">
+                <input type="text" id="user-input" placeholder="Mesajınızı yazın...">
+                <button onclick="sendMessage()">Gönder</button>
+            </div>
+        </div>
+
+        <!-- Mesai Dışı Şikayet/Destek Formu Ekranı -->
+        <div id="support-form-container" class="hidden">
+            <h3>Destek / Şikayet Formu</h3>
+            <p class="subtitle">Mesai saatleri dışındayız. Bilgilerinizi bırakın, size ulaşalım.</p>
+            
+            <form id="supportForm" onsubmit="handleFormSubmit(event)">
+                <input type="text" id="name" required placeholder="Ad Soyad">
+                <input type="email" id="email" required placeholder="E-Posta Adresi">
+                <input type="tel" id="phone" required placeholder="Telefon Numaranız">
+                <input type="text" id="subject" required placeholder="Şikayet/Talep Başlığı">
+                <textarea id="message" rows="3" required placeholder="Şikayetiniz veya Mesajınız"></textarea>
+                
+                <button type="submit" id="submitBtn">Gönder</button>
+            </form>
+            <div id="formFeedback"></div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
