@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Destek ve Şikayet Formu</title>
+    <style>
+        :root {
+            --primary-color: #4a90e2;
+            --primary-hover: #357abd;
+            --success-color: #28a745;
+            --error-color: #dc3545;
+            --bg-color: #f4f7f6;
+            --card-bg: #ffffff;
+            --text-color: #333333;
+            --border-color: #cccccc;
+        }
+        
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            background-color: var(--bg-color); 
+            margin: 0; 
+            padding: 20px; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            min-height: 100vh; 
+        }
+        
+        .form-container { 
+            background: var(--card-bg); 
+            padding: 40px; 
+            border-radius: 12px; 
+            box-shadow: 0 8px 24px rgba(0,0,0,0.08); 
+            width: 100%; 
+            max-width: 500px; 
+        }
+        
+        h2 { 
+            color: var(--text-color); 
+            margin-top: 0;
+            margin-bottom: 24px; 
+            text-align: center; 
+            font-weight: 600;
+        }
+        
+        .form-group { 
+            margin-bottom: 20px; 
+        }
+        
+        label { 
+            display: block; 
+            margin-bottom: 8px; 
+            color: #555; 
+            font-weight: 500; 
+            font-size: 14px;
+        }
+        
+        input[type="text"], 
+        input[type="email"], 
+        input[type="tel"], 
+        textarea { 
+            width: 100%; 
+            padding: 12px 15px; 
+            border: 1px solid var(--border-color); 
+            border-radius: 6px; 
+            box-sizing: border-box; 
+            font-size: 15px; 
+            transition: border-color 0.3s ease;
+            font-family: inherit;
+        }
+        
+        input:focus, textarea:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.2);
+        }
+        
+        textarea { 
+            resize: vertical; 
+            min-height: 120px; 
+        }
+        
+        button { 
+            width: 100%; 
+            padding: 14px; 
+            background-color: var(--primary-color); 
+            color: white; 
+            border: none; 
+            border-radius: 6px; 
+            cursor: pointer; 
+            font-size: 16px; 
+            font-weight: 600; 
+            transition: background-color 0.3s, transform 0.1s; 
+            margin-top: 10px;
+        }
+        
+        button:hover { 
+            background-color: var(--primary-hover); 
+        }
+        
+        button:active {
+            transform: translateY(1px);
+        }
+        
+        button:disabled {
+            background-color: #a0c4eb;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        #response-message { 
+            margin-top: 20px; 
+            padding: 15px; 
+            border-radius: 6px; 
+            display: none; 
+            text-align: center; 
+            font-weight: 500;
+            font-size: 14px;
+            animation: fadeIn 0.3s ease;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .success { 
+            background-color: #d4edda; 
+            color: #155724; 
+            border: 1px solid #c3e6cb; 
+        }
+        
+        .error { 
+            background-color: #f8d7da; 
+            color: #721c24; 
+            border: 1px solid #f5c6cb; 
+        }
+    </style>
+</head>
+<body>
+
+    <div class="form-container">
+        <h2>Destek ve Şikayet Talebi</h2>
+        <!-- 
+            Form gönderimini JavaScript ile yakalayacağız, 
+            bu yüzden action özelliği boş bırakılmıştır. 
+        -->
+        <form id="supportForm">
+            <div class="form-group">
+                <label for="name">Ad Soyad</label>
+                <input type="text" id="name" name="name" required placeholder="Adınız ve Soyadınız">
+            </div>
+            
+            <div class="form-group">
+                <label for="email">E-Posta Adresi</label>
+                <input type="email" id="email" name="email" required placeholder="ornek@mail.com">
+            </div>
+            
+            <div class="form-group">
+                <label for="phone">Telefon Numarası</label>
+                <input type="tel" id="phone" name="phone" required placeholder="05XX XXX XX XX">
+            </div>
+            
+            <div class="form-group">
+                <label for="subject">Konu Başlığı</label>
+                <input type="text" id="subject" name="subject" required placeholder="Talebinizin veya şikayetinizin konusu">
+            </div>
+            
+            <div class="form-group">
+                <label for="message">Mesajınız / Şikayet Detayı</label>
+                <textarea id="message" name="message" required placeholder="Lütfen detayları buraya yazınız..."></textarea>
+            </div>
+            
+            <button type="submit" id="submitBtn">Talebi Gönder</button>
+        </form>
+        
+        <!-- Sunucudan dönen mesajların gösterileceği alan -->
+        <div id="response-message"></div>
+    </div>
+
+    <script>
+        document.getElementById('supportForm').addEventListener('submit', function(e) {
+            // Formun sayfayı yenilemesini (varsayılan davranışı) engelliyoruz
+            e.preventDefault();
+            
+            const btn = document.getElementById('submitBtn');
+            const responseDiv = document.getElementById('response-message');
+            
+            // 1. Backend PHP'nin beklediği verileri HTML inputlarından toplayıp JSON nesnesi oluşturuyoruz
+            const formData = {
+                name: document.getElementById('name').value,
+                email: document.getElementById('email').value,
+                phone: document.getElementById('phone').value,
+                subject: document.getElementById('subject').value,
+                message: document.getElementById('message').value
+            };
+
+            // Yükleniyor durumu: Butonu devre dışı bırak ve metni değiştir
+            btn.disabled = true;
+            btn.textContent = 'Gönderiliyor, lütfen bekleyin...';
+            
+            responseDiv.style.display = 'none';
+            responseDiv.className = '';
+
+            // 2. Fetch API ile PHP dosyasına JSON formatında POST isteği atıyoruz
+            // DİKKAT: 'islem.php' yazan yere sizin PHP dosyanızın tam adını veya yolunu yazmalısınız.
+            fetch('islem.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json' // PHP'deki "php://input" ve json_decode beklentisini karşılar
+                },
+                body: JSON.stringify(formData) // Nesnemizi JSON string'ine çeviriyoruz
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Sunucu hatası: ' + response.status);
+                }
+                return response.json(); // PHP'den gelen json_encode() çıktısını çözümlüyoruz
+            })
+            .then(data => {
+                // 3. Backend'den gelen yanıtı (success durumu ve message) işliyoruz
+                responseDiv.style.display = 'block';
+                responseDiv.textContent = data.message;
+                
+                if (data.success) {
+                    responseDiv.classList.add('success');
+                    document.getElementById('supportForm').reset(); // Başarılıysa formu temizle
+                } else {
+                    responseDiv.classList.add('error');
+                }
+            })
+            .catch(error => {
+                // Bağlantı hatası, JSON parse hatası vb. durumlar
+                responseDiv.style.display = 'block';
+                responseDiv.textContent = 'İşlem sırasında bir hata oluştu. Lütfen tekrar deneyin.';
+                responseDiv.classList.add('error');
+                console.error('Hata Detayı:', error);
+            })
+            .finally(() => {
+                // İşlem bitince (başarılı ya da başarısız) butonu eski haline getir
+                btn.disabled = false;
+                btn.textContent = 'Talebi Gönder';
+            });
+        });
+    </script>
+</body>
+</html>
