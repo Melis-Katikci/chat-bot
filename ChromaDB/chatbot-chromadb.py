@@ -17,6 +17,13 @@ logging.getLogger().setLevel(logging.ERROR)
 nltk.download('punkt_tab', quiet=True)
 analyzer = zeyrek.MorphAnalyzer()
 
+# ==========================================
+# VERİTABANI BAĞLANTISI
+# ==========================================
+# Eren SQL altyapısını kurduğunda burayı güncelleyecek:
+# db_connection = psycopg2.connect(...) veya sqlalchemy session vs.
+db_connection = None 
+
 def metin_koku_bul(metin):
     temiz_metin = re.sub(r'[^\w\s]', '', metin).lower()
     analiz_sonucu = analyzer.lemmatize(temiz_metin)
@@ -138,7 +145,6 @@ def musteri_hizmetlerine_yonlendir():
     else:
         return "Şu an mesai saatleri (Hafta içi 09:00 - 18:00) dışındayız. E-posta yollayarak en kısa sürede size geri dönüş yapılmasını sağlayabilirsiniz."
 
-basarisiz_deneme_sayisi = 0
 def check_faq_table(query_vector, db_connection, similarity_threshold=0.85):
     """
     Kullanıcının soru vektörünü FAQ tablosundaki popüler 3 soru ile kıyaslar.
@@ -148,7 +154,6 @@ def check_faq_table(query_vector, db_connection, similarity_threshold=0.85):
         
     cursor = db_connection.cursor()
     
-    # Vektörü pgvector formatına uygun string dizisine dönüştürür
     vector_str = "[" + ",".join(map(str, query_vector)) + "]"
     
     query = """
@@ -169,41 +174,37 @@ def check_faq_table(query_vector, db_connection, similarity_threshold=0.85):
             return answer
 
     return None
+
 # ==========================================
 # 4. AŞAMA: MERKEZİ RAG MOTORU
 # ==========================================
-def cevabi_getir(kullanici_sorusu: str) -> str:
-    global basarisiz_deneme_sayisi
-    
+def cevabi_getir(kullanici_sorusu: str, mevcut_hata_sayisi: int) -> tuple:
     temiz_kullanici_sorusu = re.sub(r'[^\w\s]', '', kullanici_sorusu).lower()
 
-    if not temiz_kullanici_sorusu:                              
-        return "Lütfen bir daha sorun, daha açıklayıcı ifadeler kullanın."
+    if not temiz_kullanici_sorusu:                               
+        return "Lütfen bir daha sorun, daha açıklayıcı ifadeler kullanın.", mevcut_hata_sayisi
 
     duzeltilmis_soru, cok_yanlis_mi = yazim_duzelt(temiz_kullanici_sorusu)
     
     if cok_yanlis_mi or not soru_mantikli_mi(duzeltilmis_soru):
-        basarisiz_deneme_sayisi += 1
-        if basarisiz_deneme_sayisi >= 3:
+        mevcut_hata_sayisi += 1
+        if mevcut_hata_sayisi >= 3:
             yonlendirme = musteri_hizmetlerine_yonlendir()
-            basarisiz_deneme_sayisi = 0
-            return f"Üzgünüm, sorunuzu anlamakta zorlanıyorum. {yonlendirme}"
-        return "Lütfen bir daha sorun, daha açıklayıcı ifadeler kullanın."
+            return f"Üzgünüm, sorunuzu anlamakta zorlanıyorum. {yonlendirme}", 0
+        return "Lütfen bir daha sorun, daha açıklayıcı ifadeler kullanın.", mevcut_hata_sayisi
         
     temiz_soru = metin_koku_bul(duzeltilmis_soru)
     e5_formatli_soru = f"query: {temiz_soru}"
+
     # =========================================================================
-    # 🌟 MELEK/MELİS'İN İSTEDİĞİ FAQ KONTROLÜ
+    # 🌟 FAQ KONTROLÜ
     # =========================================================================
-    # 1. Metni gerçek bir sayısal vektöre dönüştür
     soru_vektoru = embedding_model([e5_formatli_soru])[0]
     
-    # 2. SQL veritabanı bağlantısı ile kontrol et
     faq_answer = check_faq_table(soru_vektoru, globals().get('db_connection'))
     
     if faq_answer:
-        basarisiz_deneme_sayisi = 0
-        return faq_answer
+        return faq_answer, 0
     # =========================================================================
     
     sonuclar = collection.query(
@@ -216,19 +217,17 @@ def cevabi_getir(kullanici_sorusu: str) -> str:
         mesafe = sonuclar['distances'][0][0] 
         
         if mesafe > 0.16:
-            basarisiz_deneme_sayisi += 1
-            if basarisiz_deneme_sayisi >= 3:
+            mevcut_hata_sayisi += 1
+            if mevcut_hata_sayisi >= 3:
                 yonlendirme = musteri_hizmetlerine_yonlendir()
-                basarisiz_deneme_sayisi = 0
-                return f"Kılavuzda bu konuyla ilgili eşleşen bir bilgi bulamadım. {yonlendirme}"
-            return "Lütfen bir daha sorun, sorunuzu daha açıklayıcı yazın."
+                return f"Kılavuzda bu konuyla ilgili eşleşen bir bilgi bulamadım. {yonlendirme}", 0
+            return "Lütfen bir daha sorun, sorunuzu daha açıklayıcı yazın.", mevcut_hata_sayisi
         else:
-            basarisiz_deneme_sayisi = 0 
             insansi_cevap = re.sub(r'(?i)^\s*madde\s*\d*\s*(f[ıi]kra\s*\d*)?\s*[.:;,-]?\s*', '', bulunan_cevap)
             insansi_cevap = re.split(r'(?i)\s*(?=\bMADDE\s+\d+\b|\bFIKRA\s+\d+\b)', insansi_cevap)[0]
-            return insansi_cevap.strip()
+            return insansi_cevap.strip(), 0
     else:
-        return "Veritabanında arama yapılamadı."
+        return "Veritabanında arama yapılamadı.", mevcut_hata_sayisi
 
 # ==========================================
 # 5. AŞAMA: FASTAPI WEB SERVİS KATMANI VE OTURUM YÖNETİMİ
@@ -308,7 +307,9 @@ def rag_soru_sor(istek: SoruIstek):
             return {"cevap": "Lütfen sadece 'Evet' veya 'Hayır' yazınız."}
 
     else:
-        cevap = cevabi_getir(mesaj)
+        # cevabi_getir artık cevap ve güncel hata sayısını birlikte döndürüyor
+        cevap, guncel_hata = cevabi_getir(mesaj, oturum["hata_sayisi"])
+        oturum["hata_sayisi"] = guncel_hata
         
         hata_kelimeleri = ["Lütfen bir daha", "Üzgünüm", "Kılavuzda", "Veritabanında"]
         basarili_bir_cevap_mi = not any(hata in cevap for hata in hata_kelimeleri)
