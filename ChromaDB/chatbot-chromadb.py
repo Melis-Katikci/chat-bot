@@ -139,6 +139,31 @@ def musteri_hizmetlerine_yonlendir():
         return "Şu an mesai saatleri (Hafta içi 09:00 - 18:00) dışındayız. E-posta yollayarak en kısa sürede size geri dönüş yapılmasını sağlayabilirsiniz."
 
 basarisiz_deneme_sayisi = 0
+def check_faq_table(query_vector, db_connection, similarity_threshold=0.85):
+    """
+    Kullanıcının soru vektörünü FAQ tablosundaki popüler 3 soru ile kıyaslar.
+    Eşleşme threshold üzerindeyse doğrudan cevabı döndürür.
+    """
+    cursor = db_connection.cursor()
+    
+    query = """
+        SELECT question, answer, (1 - (question_vector <=> %s::vector)) AS similarity
+        FROM faq
+        ORDER BY similarity DESC
+        LIMIT 3;
+    """
+    
+    cursor.execute(query, (query_vector,))
+    top_faqs = cursor.fetchall()
+
+    if top_faqs:
+        best_match = top_faqs[0] 
+        question, answer, similarity = best_match
+        
+        if similarity >= similarity_threshold:
+            return answer
+
+    return None
 
 # ==========================================
 # 4. AŞAMA: MERKEZİ RAG MOTORU
@@ -163,6 +188,15 @@ def cevabi_getir(kullanici_sorusu: str) -> str:
         
     temiz_soru = metin_koku_bul(duzeltilmis_soru)
     e5_formatli_soru = f"query: {temiz_soru}"
+    # =========================================================================
+    # 🌟 MELEK/MELİS'İN İSTEDİĞİ FAQ KONTROLÜ (PDF ARAMASININ ÖNÜNE)
+    # =========================================================================
+    # db_connection: Veritabanı bağlantı nesneniz
+    faq_answer = check_faq_table(e5_formatli_soru, db_connection)
+    if faq_answer:
+        basarisiz_deneme_sayisi = 0
+        return faq_answer
+    # =========================================================================
     
     sonuclar = collection.query(
         query_texts=[e5_formatli_soru],
