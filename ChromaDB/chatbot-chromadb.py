@@ -142,9 +142,14 @@ basarisiz_deneme_sayisi = 0
 def check_faq_table(query_vector, db_connection, similarity_threshold=0.85):
     """
     Kullanıcının soru vektörünü FAQ tablosundaki popüler 3 soru ile kıyaslar.
-    Eşleşme threshold üzerindeyse doğrudan cevabı döndürür.
     """
+    if db_connection is None:
+        return None  # Veritabanı bağlantısı yoksa pas geç
+        
     cursor = db_connection.cursor()
+    
+    # Vektörü pgvector formatına uygun string dizisine dönüştürür
+    vector_str = "[" + ",".join(map(str, query_vector)) + "]"
     
     query = """
         SELECT question, answer, (1 - (question_vector <=> %s::vector)) AS similarity
@@ -153,7 +158,7 @@ def check_faq_table(query_vector, db_connection, similarity_threshold=0.85):
         LIMIT 3;
     """
     
-    cursor.execute(query, (query_vector,))
+    cursor.execute(query, (vector_str,))
     top_faqs = cursor.fetchall()
 
     if top_faqs:
@@ -164,7 +169,6 @@ def check_faq_table(query_vector, db_connection, similarity_threshold=0.85):
             return answer
 
     return None
-
 # ==========================================
 # 4. AŞAMA: MERKEZİ RAG MOTORU
 # ==========================================
@@ -189,10 +193,14 @@ def cevabi_getir(kullanici_sorusu: str) -> str:
     temiz_soru = metin_koku_bul(duzeltilmis_soru)
     e5_formatli_soru = f"query: {temiz_soru}"
     # =========================================================================
-    # 🌟 MELEK/MELİS'İN İSTEDİĞİ FAQ KONTROLÜ (PDF ARAMASININ ÖNÜNE)
+    # 🌟 MELEK/MELİS'İN İSTEDİĞİ FAQ KONTROLÜ
     # =========================================================================
-    # db_connection: Veritabanı bağlantı nesneniz
-    faq_answer = check_faq_table(e5_formatli_soru, db_connection)
+    # 1. Metni gerçek bir sayısal vektöre dönüştür
+    soru_vektoru = embedding_model([e5_formatli_soru])[0]
+    
+    # 2. SQL veritabanı bağlantısı ile kontrol et
+    faq_answer = check_faq_table(soru_vektoru, globals().get('db_connection'))
+    
     if faq_answer:
         basarisiz_deneme_sayisi = 0
         return faq_answer
