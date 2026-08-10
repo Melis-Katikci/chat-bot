@@ -11,15 +11,15 @@ function isWorkingHours() {
     const hour = now.getHours();
 
     if (day === 0 || day === 6) return false;
-    if (hour < 9 || hour >= 18) return false;
+    if (hour < 9 || hour >= 14) return false;
 
     return true;
 }
 
 let waitingForConsent = false;
 
-// 3. Mesaj Gönderme ve Form Yönlendirme Mantığı 
-function sendMessage() {
+// 3. Mesaj Gönderme ve Spring Boot Bağlantı Mantığı 
+async function sendMessage() {
     const inputField = document.getElementById('user-input');
     const chatBox = document.getElementById('chat-box');
     const userMsg = inputField.value.trim();
@@ -38,6 +38,7 @@ function sendMessage() {
             chatBox.innerHTML += `<div><strong>Bot:</strong> Anlaşıldı. Başka bir sorunuz olursa yazabilirsiniz.</div>`;
             waitingForConsent = false;
         }
+        chatBox.scrollTop = chatBox.scrollHeight;
         return;
     }
 
@@ -45,8 +46,33 @@ function sendMessage() {
     if (!isWorkingHours()) {
         chatBox.innerHTML += `<div><strong>Bot:</strong> Şu anda mesai saatleri dışındayız. Destek talebinde bulunmak ister misiniz? (Evet / Hayır)</div>`;
         waitingForConsent = true;
-    } else {
-        chatBox.innerHTML += `<div><strong>Bot:</strong> Talebinizi aldık, müşteri temsilcimiz birazdan bağlanacaktır.</div>`;
+        chatBox.scrollTop = chatBox.scrollHeight;
+        return;
+    }
+
+    // --- MESAİ SAATİ İÇİNDEYSE: Spring Boot Backend'e İstek At ---
+    try {
+        const response = await fetch('http://localhost:8080/api/chat/ask', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                question: userMsg,
+                userId: 1
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error("Sunucu hatası: " + response.status);
+        }
+
+        const data = await response.json();
+        
+        // Spring Boot'tan gelen cevabı ekrana yazdır
+        chatBox.innerHTML += `<div><strong>Bot:</strong> ${data.answer}</div>`;
+
+    } catch (error) {
+        console.error("Hata:", error);
+        chatBox.innerHTML += `<div><strong>Bot:</strong> Üzgünüm, sunucuya erişirken bir hata oluştu.</div>`;
     }
 
     chatBox.scrollTop = chatBox.scrollHeight;
@@ -76,24 +102,25 @@ function handleFormSubmit(event) {
 
     const formData = { name, email, phone, subject, message };
 
-    // PHP Backend'ine veriyi iletme
-    fetch('send-email.php', {
+    // Spring Boot üzerindeki e-posta/destek servisine istek gönder
+    fetch('http://localhost:8080/api/support', { 
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData)
     })
-    .then(res => res.json())
-    .then(data => {
-        if(data.success) {
+    .then(async (res) => {
+        const data = await res.json().catch(() => ({}));
+        if (res.ok || data.success) {
             document.getElementById('formFeedback').style.color = "green";
             document.getElementById('formFeedback').innerText = "Talebiniz başarıyla iletildi!";
             document.getElementById('supportForm').reset();
         } else {
             document.getElementById('formFeedback').style.color = "red";
-            document.getElementById('formFeedback').innerText = "Hata: " + data.message;
+            document.getElementById('formFeedback').innerText = "Hata: " + (data.message || "Gönderilemedi.");
         }
     })
-    .catch(() => {
+    .catch((err) => {
+        console.error("Form Gönderme Hatası:", err);
         document.getElementById('formFeedback').style.color = "red";
         document.getElementById('formFeedback').innerText = "Sunucuya bağlanırken hata oluştu.";
     });
