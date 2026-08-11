@@ -11,7 +11,7 @@ function isWorkingHours() {
     const hour = now.getHours();
 
     if (day === 0 || day === 6) return false;
-    if (hour < 9 || hour >= 14) return false;
+    if (hour < 8 || hour >= 9) return false;
 
     return true;
 }

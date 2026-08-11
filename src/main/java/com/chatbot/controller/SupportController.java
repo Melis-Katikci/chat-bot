@@ -13,7 +13,7 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/support")
-@CrossOrigin(origins = "*")
+@CrossOrigin(origins = "*") // Flutter Web ve Mobil istemciler için CORS izni
 public class SupportController {
 
     private final SupportFormRepository supportFormRepository;
@@ -30,30 +30,42 @@ public class SupportController {
     public ResponseEntity<Map<String, Object>> createSupportRequest(@RequestBody Map<String, String> requestData) {
         Map<String, Object> response = new HashMap<>();
         try {
-            // 1. Kullanıcıyı Bul veya Varsayılan Bir Kullanıcı İle Eşleştir (user_id zorunlu olduğu için)
-            User user = userRepository.findById(1L).orElse(null); // id=1 olan kullanıcı
+            // Flutter ve Web arayüzünden gelen parametreleri güvenli şekilde alıyoruz
+            String name = requestData.getOrDefault("name", "Misafir Kullanıcı");
+            String email = requestData.getOrDefault("email", "misafir@example.com");
+            String phone = requestData.getOrDefault("phone", "");
+            String subject = requestData.getOrDefault("subject", requestData.getOrDefault("complaintTitle", "Konusuz"));
+            String message = requestData.getOrDefault("message", requestData.getOrDefault("complaintSummary", "-"));
+
+            // 1. Kullanıcıyı Bul veya Veritabanı Boşsa Otomatik Oluştur
+            User user = userRepository.findById(1L).orElse(null);
+            
             if (user == null) {
                 user = userRepository.findAll().stream().findFirst().orElse(null);
             }
 
+            // Veritabanında hiç kullanıcı yoksa kayıt işleminin çökmemesi için otomatik bir kullanıcı oluşturur
             if (user == null) {
-                response.put("success", false);
-                response.put("message", "Sistemde kayıtlı kullanıcı bulunamadı.");
-                return ResponseEntity.badRequest().body(response);
+                user = new User();
+                user.setFirstName(name);
+                user.setLastName("");
+                user.setEmail(email);
+                user.setPhoneNumber(phone);
+                user = userRepository.save(user);
             }
 
             // 2. SupportForm Nesnesini Oluştur
             SupportForm form = new SupportForm();
             form.setUser(user);
-            form.setComplaintTitle(requestData.getOrDefault("subject", requestData.getOrDefault("complaintTitle", "Konusuz")));
-            form.setComplaintSummary(requestData.getOrDefault("message", requestData.getOrDefault("complaintSummary", "-")));
+            form.setComplaintTitle(subject);
+            form.setComplaintSummary(message);
             form.setStatus("Beklemede");
             form.setIsMailed(true);
 
-            // 3. Veritabanına Kaydet
+            // 3. Veritabanına Kaydet (PostgreSQL)
             SupportForm savedForm = supportFormRepository.save(form);
 
-            // 4. E-posta Gönder
+            // 4. E-posta Gönder (Gmail SMTP)
             emailService.sendSupportEmail(savedForm);
 
             response.put("success", true);
