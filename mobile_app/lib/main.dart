@@ -27,12 +27,23 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  final FocusNode _focusNode = FocusNode();
+  final ScrollController _scrollController = ScrollController();
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    _focusNode.dispose();
+    _messageController.dispose();
+    super.dispose();
+  }
   // ---------------------------------------------------------------------------
   // CHAT VE FORM DURUMLARI
   // ---------------------------------------------------------------------------
 
   bool _isChatOpen = false;
   bool _showSupportForm = false;
+  bool _isHovered = false;
 
   // Botun hangi cevabı beklediğini tutar.
   //
@@ -113,6 +124,22 @@ class _HomeScreenState extends State<HomeScreen> {
   // MESAJ GÖNDERME
   // ---------------------------------------------------------------------------
 
+  // ---------------------------------------------------------------------------
+  // OTOMATİK AŞAĞI KAYDIRMA
+  // ---------------------------------------------------------------------------
+  void _scrollToBottom() {
+    // Arayüzün güncellenmesini (yeni mesajın çizilmesini) bekleyip sonra kaydırır
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scrollController.hasClients) {
+        _scrollController.animateTo(
+          _scrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
+      }
+    });
+  }
+
   void _handleSendMessage() async {
     final text = _messageController.text.trim();
 
@@ -126,6 +153,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
       _messageController.clear();
     });
+    _focusNode.requestFocus();
+    _scrollToBottom();
 
     // ========================================================================
     // 1. "YANITIM YETERLİ OLDU MU?" SORUSUNUN CEVABI
@@ -270,6 +299,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
         _waitingFor = 'answer';
       });
+      _scrollToBottom();
     } catch (e) {
       if (!mounted) return;
 
@@ -397,7 +427,11 @@ class _HomeScreenState extends State<HomeScreen> {
                           vertical: 12,
                         ),
                         decoration: const BoxDecoration(
-                          color: Color(0xFF007BFF),
+                          gradient: LinearGradient(
+                            colors: [Color(0xFF0056b3), Color(0xFF007BFF)],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
                           borderRadius: BorderRadius.vertical(
                             top: Radius.circular(15),
                           ),
@@ -405,17 +439,86 @@ class _HomeScreenState extends State<HomeScreen> {
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            const Row(
+                            Row(
                               children: [
-                                Icon(Icons.support_agent, color: Colors.white),
-                                SizedBox(width: 8),
-                                Text(
-                                  'AboneSepeti Destek',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 16,
+                                TweenAnimationBuilder(
+                                  tween: Tween<double>(begin: 0, end: 1),
+                                  duration: const Duration(milliseconds: 600),
+                                  curve: Curves.elasticOut,
+                                  builder: (context, value, child) {
+                                    return Transform.scale(
+                                      scale: value,
+                                      child: child,
+                                    );
+                                  },
+                                  child: Container(
+                                    width: 40,
+                                    height: 40,
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      color: Colors.white,
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black.withValues(alpha: 0.15),
+                                          blurRadius: 6,
+                                          offset: const Offset(0, 3),
+                                        ),
+                                      ],
+                                    ),
+                                    child: ClipOval(
+                                      // RESMİ SOLA KAYDIRAN KISIM BURASI
+                                      child: Transform.translate(
+                                        offset: const Offset(-1.0, 0.0), // -2.0 değeri resmi 2 piksel sola iter.
+                                        child: Transform.scale(
+                                          scale: 1.35,
+                                          child: Image.asset(
+                                            'assets/images/bot_icon.png',
+                                            fit: BoxFit.cover,
+                                            width: 40,
+                                            height: 40,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
                                   ),
+                                ),
+                                const SizedBox(width: 12),
+                                // BAŞLIK VE ÇEVRİMİÇİ GÖSTERGESİ
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text(
+                                      'AboneSepeti Destek',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 16,
+                                        letterSpacing: 0.5,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Row(
+                                      children: [
+                                        Container(
+                                          width: 8,
+                                          height: 8,
+                                          decoration: const BoxDecoration(
+                                            color: Colors.greenAccent,
+                                            shape: BoxShape.circle,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 6),
+                                        const Text(
+                                          'Çevrimiçi',
+                                          style: TextStyle(
+                                            color: Colors.white70,
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
                                 ),
                               ],
                             ),
@@ -450,18 +553,98 @@ class _HomeScreenState extends State<HomeScreen> {
         ],
       ),
 
-      // SAĞ ALT CHAT BUTONU
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: const Color(0xFF007BFF),
-        elevation: 6,
-        onPressed: () {
-          setState(() {
-            _isChatOpen = !_isChatOpen;
-          });
-        },
-        child: Icon(
-          _isChatOpen ? Icons.close : Icons.chat_bubble,
-          color: Colors.white,
+// SAĞ ALT CHAT BUTONU
+      floatingActionButton: MouseRegion(
+        onEnter: (_) => setState(() => _isHovered = true),
+        onExit: (_) => setState(() => _isHovered = false),
+
+        child: AnimatedScale(
+          scale: _isHovered && !_isChatOpen ? 1.1 : 1.0,
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeInOutBack,
+
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            width: 72,
+            height: 72,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: Colors.transparent,
+              boxShadow: [
+                BoxShadow(
+                  color: _isHovered ? Colors.black.withValues(alpha: 0.3) : Colors.black.withValues(alpha: 0.15),
+                  blurRadius: _isHovered ? 16 : 8,
+                  offset: _isHovered ? const Offset(0, 8) : const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: ClipOval(
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: () {
+                    setState(() {
+                      _isChatOpen = !_isChatOpen;
+                      _isHovered = false;
+                    });
+                  },
+                  child: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 100),
+                    transitionBuilder: (Widget child, Animation<double> animation) {
+                      return ScaleTransition(
+                        scale: animation,
+                        child: FadeTransition(
+                          opacity: animation,
+                          child: child,
+                        ),
+                      );
+                    },
+                    child: _isChatOpen
+                    //SOHBET AÇIKKEN ÇIKAN X BUTONU
+                        ? AnimatedContainer(
+                      key: const ValueKey('close_icon'),
+                      width: 72,
+                      height: 72,
+                      duration: const Duration(milliseconds: 200),
+                      curve: Curves.easeInOut,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: _isHovered ? const Color(0xFF007BFF) : Colors.white,
+                      ),
+                      child: Center(
+                        child: Icon(
+                          Icons.close,
+                          color: _isHovered ? Colors.white : const Color(0xFF007BFF),
+                          size: 32,
+                        ),
+                      ),
+                    )
+                        : Container(
+                      key: const ValueKey('bot_icon'),
+                      width: 72,
+                      height: 72,
+                      decoration: const BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.white,
+                      ),
+                      child: ClipOval(
+                        child: Transform.translate(
+                          offset: const Offset(-2.0, 0.0),
+                          child: Transform.scale(
+                            scale: 1.35,
+                            child: Image.asset(
+                              'assets/images/bot_icon.png',
+                              fit: BoxFit.cover,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
         ),
       ),
     );
@@ -476,35 +659,79 @@ class _HomeScreenState extends State<HomeScreen> {
       children: [
         Expanded(
           child: ListView.builder(
+            controller: _scrollController,
             padding: const EdgeInsets.all(12),
             itemCount: _messages.length,
             itemBuilder: (context, index) {
               final msg = _messages[index];
               final isUser = msg['sender'] == 'user';
 
-              return Align(
-                alignment: isUser
-                    ? Alignment.centerRight
-                    : Alignment.centerLeft,
-                child: Container(
-                  margin: const EdgeInsets.symmetric(vertical: 4),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 10,
-                  ),
-                  decoration: BoxDecoration(
-                    color: isUser
-                        ? const Color(0xFF007BFF)
-                        : Colors.grey.shade200,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    msg['text']!,
-                    style: TextStyle(
-                      color: isUser ? Colors.white : Colors.black87,
-                      fontSize: 14,
+              return Padding(
+                padding: const EdgeInsets.symmetric(vertical: 6.0),
+                child: Row(
+                  mainAxisAlignment: isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    if (!isUser) ...[
+                      Container(
+                        margin: const EdgeInsets.only(right: 8),
+                        width: 28,
+                        height: 28,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Colors.white,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.1),
+                              blurRadius: 4,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: ClipOval(
+                          child: Image.asset('assets/images/bot_icon.png', fit: BoxFit.cover),
+                        ),
+                      ),
+                    ],
+                    // MESAJ BALONU
+                    Flexible(
+                      child: Container(
+                        constraints: BoxConstraints(
+                          maxWidth: MediaQuery.of(context).size.width * 0.70,
+                        ),
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        decoration: BoxDecoration(
+                          color: isUser ? const Color(0xFF007BFF) : const Color(0xFFF1F3F5),
+                          borderRadius: BorderRadius.only(
+                            topLeft: const Radius.circular(16),
+                            topRight: const Radius.circular(16),
+                            bottomLeft: isUser ? const Radius.circular(16) : const Radius.circular(4),
+                            bottomRight: isUser ? const Radius.circular(4) : const Radius.circular(16),
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.05),
+                              blurRadius: 5,
+                              offset: const Offset(0, 2),
+                            )
+                          ],
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              msg['text']!,
+                              style: TextStyle(
+                                color: isUser ? Colors.white : Colors.black87,
+                                fontSize: 14.5,
+                                height: 1.3,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
-                  ),
+                  ],
                 ),
               );
             },
@@ -513,26 +740,60 @@ class _HomeScreenState extends State<HomeScreen> {
 
         // MESAJ YAZMA ALANI
         Container(
-          padding: const EdgeInsets.all(8),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           decoration: BoxDecoration(
+            color: Colors.white,
             border: Border(top: BorderSide(color: Colors.grey.shade200)),
           ),
           child: Row(
             children: [
               Expanded(
-                child: TextField(
-                  controller: _messageController,
-                  decoration: const InputDecoration(
-                    hintText: 'Mesajınızı yazın...',
-                    border: InputBorder.none,
-                    contentPadding: EdgeInsets.symmetric(horizontal: 10),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade100,
+                    borderRadius: BorderRadius.circular(24),
+                    border: Border.all(color: Colors.grey.shade300, width: 0.5),
                   ),
-                  onSubmitted: (_) => _handleSendMessage(),
+                  child: TextField(
+                    controller: _messageController,
+                    focusNode: _focusNode,
+                    textInputAction: TextInputAction.send,
+                    decoration: const InputDecoration(
+                      hintText: 'Mesajınızı yazın...',
+                      hintStyle: TextStyle(color: Colors.grey, fontSize: 14),
+                      border: InputBorder.none,
+                      contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    ),
+                    onSubmitted: (_) => _handleSendMessage(),
+                  ),
                 ),
               ),
-              IconButton(
-                icon: const Icon(Icons.send, color: Color(0xFF007BFF)),
-                onPressed: _handleSendMessage,
+              Container(
+                margin: const EdgeInsets.only(left: 8),
+                decoration: const BoxDecoration(
+                  color: Color(0xFF007BFF),
+                  shape: BoxShape.circle,
+                ),
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(50),
+                    splashColor: Colors.white.withValues(alpha: 0.3),
+                    highlightColor: Colors.white.withValues(alpha: 0.1),
+                    onTap: _handleSendMessage,
+                    child: const Padding(
+                      padding: EdgeInsets.all(12.0),
+                      child: Padding(
+                        padding: EdgeInsets.only(left: 4.0),
+                        child: Icon(
+                          Icons.send,
+                          color: Colors.white,
+                          size: 20,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
               ),
             ],
           ),
@@ -547,55 +808,81 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildSupportFormUI() {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 24.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           const Text(
             'Destek / Şikayet Formu',
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            style: TextStyle(
+              fontWeight: FontWeight.w800,
+              fontSize: 20,
+              color: Color(0xFF1A1A1A),
+              letterSpacing: -0.5,
+            ),
+            textAlign: TextAlign.center,
           ),
 
-          const SizedBox(height: 4),
+          const SizedBox(height: 8),
 
           Text(
-            'Mesai saatleri dışındayız. Bilgilerinizi bırakın, size ulaşalım.',
-            style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+            'Şu an mesai saatleri dışındayız. Lütfen bilgilerinizi bırakın, size en kısa sürede ulaşalım.',
+            style: TextStyle(
+              color: Colors.grey.shade600,
+              fontSize: 13,
+              height: 1.4,
+            ),
+            textAlign: TextAlign.center,
           ),
 
-          const SizedBox(height: 10),
+          const SizedBox(height: 24),
 
-          _buildTextField(_nameController, 'Ad Soyad'),
+          _buildTextField(_nameController, 'Ad Soyad', Icons.person_outline),
+          const SizedBox(height: 12),
 
-          _buildTextField(_emailController, 'E-Posta'),
+          _buildTextField(_emailController, 'E-Posta', Icons.email_outlined),
+          const SizedBox(height: 12),
 
-          _buildTextField(_phoneController, 'Telefon'),
+          _buildTextField(_phoneController, 'Telefon', Icons.phone_outlined),
+          const SizedBox(height: 12),
 
-          _buildTextField(_subjectController, 'Konu / Başlık'),
+          _buildTextField(_subjectController, 'Konu / Başlık', Icons.subject_outlined),
+          const SizedBox(height: 12),
 
-          _buildTextField(_supportMessageController, 'Mesajınız', maxLines: 3),
+          _buildTextField(_supportMessageController, 'Mesajınız', Icons.message_outlined, maxLines: 4),
 
-          const SizedBox(height: 10),
+          const SizedBox(height: 24),
 
           ElevatedButton(
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF007BFF),
               foregroundColor: Colors.white,
+              elevation: 0,
+              padding: const EdgeInsets.symmetric(vertical: 16),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(12),
               ),
             ),
             onPressed: _submitSupportForm,
-            child: const Text('Gönder'),
+            child: const Text(
+              'Gönder',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
           ),
 
-          TextButton(
+          const SizedBox(height: 8),
+
+          TextButton.icon(
             onPressed: () {
               setState(() {
                 _showSupportForm = false;
               });
             },
-            child: const Text('Sohbete Dön', style: TextStyle(fontSize: 12)),
+            icon: const Icon(Icons.arrow_back, size: 18, color: Colors.grey),
+            label: const Text(
+              'Sohbete Dön',
+              style: TextStyle(fontSize: 14, color: Colors.grey, fontWeight: FontWeight.w600),
+            ),
           ),
         ],
       ),
@@ -607,19 +894,32 @@ class _HomeScreenState extends State<HomeScreen> {
   // ---------------------------------------------------------------------------
 
   Widget _buildTextField(
-    TextEditingController controller,
-    String label, {
-    int maxLines = 1,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: TextField(
-        controller: controller,
-        maxLines: maxLines,
-        decoration: InputDecoration(
-          labelText: label,
-          isDense: true,
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+      TextEditingController controller,
+      String label,
+      IconData icon, {
+        int maxLines = 1,
+      }) {
+    return TextField(
+      controller: controller,
+      maxLines: maxLines,
+      style: const TextStyle(fontSize: 14),
+      decoration: InputDecoration(
+        labelText: label,
+        labelStyle: TextStyle(color: Colors.grey.shade600, fontSize: 14),
+        prefixIcon: maxLines == 1 ? Icon(icon, color: Colors.grey.shade400, size: 22) : null,
+        alignLabelWithHint: true,
+        filled: true,
+        fillColor: Colors.grey.shade50,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Colors.grey.shade200, width: 1.5),
+        ),
+
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: Color(0xFF007BFF), width: 2),
         ),
       ),
     );

@@ -8,7 +8,7 @@ import org.springframework.stereotype.Repository;
 
 import java.util.List;
 
-@Repository
+
 public interface ChatLogRepository extends JpaRepository<ChatLog, Long> {
     
     // Mevcut metodun (kullanıcının geçmişini getiren kısım)

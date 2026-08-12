@@ -6,7 +6,7 @@ import org.springframework.stereotype.Repository;
 
 import java.util.List;
 
-@Repository
+
 public interface SupportFormRepository extends JpaRepository<SupportForm, Long> {
     List<SupportForm> findByStatus(String status);
 }
