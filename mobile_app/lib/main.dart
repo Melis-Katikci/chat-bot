@@ -30,13 +30,6 @@ class _HomeScreenState extends State<HomeScreen> {
   final FocusNode _focusNode = FocusNode();
   final ScrollController _scrollController = ScrollController();
 
-  @override
-  void dispose() {
-    _scrollController.dispose();
-    _focusNode.dispose();
-    _messageController.dispose();
-    super.dispose();
-  }
   // ---------------------------------------------------------------------------
   // CHAT VE FORM DURUMLARI
   // ---------------------------------------------------------------------------
@@ -52,26 +45,6 @@ class _HomeScreenState extends State<HomeScreen> {
   // 'another' -> "Başka sorunuz var mı?" cevabı
   // 'support' -> "Destek / Şikayet Formu ister misiniz?" cevabı
   String? _waitingFor;
-
-  // ---------------------------------------------------------------------------
-  // MESAİ SAATİ KONTROLÜ (Hafta içi 09:00 - 18:00)
-  // ---------------------------------------------------------------------------
-
-  bool _isWorkingHours() {
-    final now = DateTime.now();
-
-    // Cumartesi veya Pazar ise mesai dışı
-    if (now.weekday == DateTime.saturday || now.weekday == DateTime.sunday) {
-      return false;
-    }
-
-    // Saat 09:00 öncesi veya 18:00 sonrası ise mesai dışı
-    if (now.hour < 7 || now.hour >= 8) {
-      return false;
-    }
-
-    return true;
-  }
 
   // ---------------------------------------------------------------------------
   // CHAT KONTROLLERİ
@@ -97,6 +70,37 @@ class _HomeScreenState extends State<HomeScreen> {
   final _subjectController = TextEditingController();
   final _supportMessageController = TextEditingController();
 
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    _focusNode.dispose();
+    _messageController.dispose();
+    _nameController.dispose();
+    _emailController.dispose();
+    _phoneController.dispose();
+    _subjectController.dispose();
+    _supportMessageController.dispose();
+    super.dispose();
+  }
+
+  // ---------------------------------------------------------------------------
+  // MESAİ SAATİ KONTROLÜ (Hafta içi 09:00 - 18:00)
+  // ---------------------------------------------------------------------------
+
+  bool _isWorkingHours() {
+    final now = DateTime.now();
+
+    if (now.weekday == DateTime.saturday || now.weekday == DateTime.sunday) {
+      return false;
+    }
+
+    if (now.hour < 9 || now.hour >= 18) {
+      return false;
+    }
+
+    return true;
+  }
+
   // ---------------------------------------------------------------------------
   // API CEVABINI TEMİZLEME
   // ---------------------------------------------------------------------------
@@ -109,8 +113,6 @@ class _HomeScreenState extends State<HomeScreen> {
       'Bu yanıt yeterli oldu mu? (Evet / Hayır)',
       'Yanıt yeterli oldu mu? (Evet/Hayır)',
       'Yanıt yeterli oldu mu? (Evet / Hayır)',
-      'Yanıt yeterli oldu mu? (Evet/Hayır)',
-      'Yanıt yeterli oldu mu? (Evet / Hayır)',
     ];
 
     for (final pattern in patterns) {
@@ -121,14 +123,10 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   // ---------------------------------------------------------------------------
-  // MESAJ GÖNDERME
-  // ---------------------------------------------------------------------------
-
-  // ---------------------------------------------------------------------------
   // OTOMATİK AŞAĞI KAYDIRMA
   // ---------------------------------------------------------------------------
+
   void _scrollToBottom() {
-    // Arayüzün güncellenmesini (yeni mesajın çizilmesini) bekleyip sonra kaydırır
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_scrollController.hasClients) {
         _scrollController.animateTo(
@@ -140,163 +138,24 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
-  void _handleSendMessage() async {
-    final text = _messageController.text.trim();
+  // ---------------------------------------------------------------------------
+  // API'DEN BOT CEVABI ALMA
+  // ---------------------------------------------------------------------------
 
-    if (text.isEmpty) return;
-
-    final lowerText = text.toLowerCase();
-
-    // Kullanıcı mesajını ekrana ekle
-    setState(() {
-      _messages.add({'sender': 'user', 'text': text});
-
-      _messageController.clear();
-    });
-    _focusNode.requestFocus();
-    _scrollToBottom();
-
-    // ========================================================================
-    // 1. "YANITIM YETERLİ OLDU MU?" SORUSUNUN CEVABI
-    // ========================================================================
-
-    if (_waitingFor == 'answer') {
-      // ----------------------------------------------------------------------
-      // Kullanıcı EVET dediyse
-      // ----------------------------------------------------------------------
-
-      if (lowerText.contains('evet')) {
-        setState(() {
-          _messages.add({'sender': 'bot', 'text': 'Başka sorunuz var mı?'});
-
-          _waitingFor = 'another';
-        });
-      }
-      // ----------------------------------------------------------------------
-      // Kullanıcı HAYIR dediyse
-      // ----------------------------------------------------------------------
-      else if (lowerText.contains('hayır') || lowerText.contains('hayir')) {
-        // MESAİ SAATİ DIŞINDAYSA -> Doğrudan Şikayet Formu Sor
-        if (!_isWorkingHours()) {
-          setState(() {
-            _messages.add({
-              'sender': 'bot',
-              'text':
-                  'Şu anda mesai saatleri dışındayız. Destek / Şikayet Formu doldurmak ister misiniz? (Evet / Hayır)',
-            });
-
-            _waitingFor = 'support';
-          });
-        }
-        // MESAİ SAATİ İÇİNDEYSE -> Müşteri Hizmetleri Numarasını Göster
-        else {
-          setState(() {
-            _messages.add({
-              'sender': 'bot',
-              'text':
-                  'Müşteri hizmetlerimizi arayabilirsiniz.\n\n'
-                  'Telefon numaramız: 0850 XXX XX XX',
-            });
-
-            _waitingFor = null;
-          });
-        }
-      }
-
-      return;
-    }
-
-    // ========================================================================
-    // 2. "BAŞKA SORUNUZ VAR MI?" SORUSUNUN CEVABI
-    // ========================================================================
-
-    if (_waitingFor == 'another') {
-      // ----------------------------------------------------------------------
-      // Kullanıcı EVET dediyse -> Yeni soru sorabilir
-      // ----------------------------------------------------------------------
-
-      if (lowerText.contains('evet')) {
-        setState(() {
-          _messages.add({
-            'sender': 'bot',
-            'text': 'Tabii, sorunuzu yazabilirsiniz.',
-          });
-
-          _waitingFor = null;
-        });
-      }
-      // ----------------------------------------------------------------------
-      // Kullanıcı HAYIR dediyse -> Sohbeti sonlandır
-      // ----------------------------------------------------------------------
-      else if (lowerText.contains('hayır') || lowerText.contains('hayir')) {
-        setState(() {
-          _messages.add({
-            'sender': 'bot',
-            'text': 'İyi günler, görüşmek üzere! 😊',
-          });
-
-          _waitingFor = null;
-        });
-      }
-
-      return;
-    }
-
-    // ========================================================================
-    // 3. "DESTEK / ŞİKAYET FORMU İSTER MİSİNİZ?" SORUSUNUN CEVABI
-    // ========================================================================
-
-    if (_waitingFor == 'support') {
-      // ----------------------------------------------------------------------
-      // Kullanıcı EVET dediyse FORMU AÇ
-      // ----------------------------------------------------------------------
-
-      if (lowerText.contains('evet')) {
-        setState(() {
-          _showSupportForm = true;
-          _waitingFor = null;
-        });
-      }
-      // ----------------------------------------------------------------------
-      // Kullanıcı HAYIR dediyse TELEFON NUMARASI + MESAİ SAATİ
-      // ----------------------------------------------------------------------
-      else if (lowerText.contains('hayır') || lowerText.contains('hayir')) {
-        setState(() {
-          _messages.add({
-            'sender': 'bot',
-            'text':
-                'Mesai saatlerimiz hafta içi 09:00 - 18:00 arasındadır. '
-                'Dilerseniz bu saatler içerisinde 0850 XXX XX XX numaramızdan bizi arayabilirsiniz.',
-          });
-
-          _waitingFor = null;
-        });
-      }
-
-      return;
-    }
-
-    // ========================================================================
-    // 4. NORMAL KULLANICI SORUSU (API İSTEĞİ)
-    // ========================================================================
-
+  Future<void> _fetchBotAnswer(String userText) async {
     try {
-      final response = await ApiService.sendMessage(text);
+      final response = await ApiService.sendMessage(userText);
 
       if (!mounted) return;
 
       final cleanedResponse = _cleanApiResponse(response);
 
       setState(() {
-        // API cevabını göster
         _messages.add({'sender': 'bot', 'text': cleanedResponse});
-
-        // Yanıt yeterli mi sorusunu ekle
         _messages.add({
           'sender': 'bot',
           'text': 'Yanıt yeterli oldu mu? (Evet / Hayır)',
         });
-
         _waitingFor = 'answer';
       });
       _scrollToBottom();
@@ -309,7 +168,126 @@ class _HomeScreenState extends State<HomeScreen> {
           'text': 'Üzgünüm, şu anda yanıt oluştururken bir sorun oluştu.',
         });
       });
+      _scrollToBottom();
     }
+  }
+
+  // ---------------------------------------------------------------------------
+  // MESAJ GÖNDERME
+  // ---------------------------------------------------------------------------
+
+  void _handleSendMessage() async {
+    final text = _messageController.text.trim();
+
+    if (text.isEmpty) return;
+
+    final lowerText = text.toLowerCase();
+
+    setState(() {
+      _messages.add({'sender': 'user', 'text': text});
+      _messageController.clear();
+    });
+
+    _focusNode.requestFocus();
+    _scrollToBottom();
+
+    // 1. "YANITIM YETERLİ OLDU MU?" BEKLENİYORSA
+    if (_waitingFor == 'answer') {
+      if (lowerText.contains('evet')) {
+        setState(() {
+          _messages.add({'sender': 'bot', 'text': 'Başka sorunuz var mı?'});
+          _waitingFor = 'another';
+        });
+        _scrollToBottom();
+        return;
+      } else if (lowerText.contains('hayır') || lowerText.contains('hayir')) {
+        if (!_isWorkingHours()) {
+          setState(() {
+            _messages.add({
+              'sender': 'bot',
+              'text':
+                  'Şu anda mesai saatleri dışındayız. Destek / Şikayet Formu doldurmak ister misiniz? (Evet / Hayır)',
+            });
+            _waitingFor = 'support';
+          });
+        } else {
+          setState(() {
+            _messages.add({
+              'sender': 'bot',
+              'text':
+                  'Müşteri hizmetlerimizi arayabilirsiniz.\n\n'
+                  'Telefon numaramız: 0850 XXX XX XX',
+            });
+            _waitingFor = null;
+          });
+        }
+        _scrollToBottom();
+        return;
+      } else {
+        _waitingFor = null;
+        await _fetchBotAnswer(text);
+        return;
+      }
+    }
+
+    // 2. "BAŞKA SORUNUZ VAR MI?" BEKLENİYORSA
+    if (_waitingFor == 'another') {
+      if (lowerText.contains('evet')) {
+        setState(() {
+          _messages.add({
+            'sender': 'bot',
+            'text': 'Tabii, sorunuzu yazabilirsiniz.',
+          });
+          _waitingFor = null;
+        });
+        _scrollToBottom();
+        return;
+      } else if (lowerText.contains('hayır') || lowerText.contains('hayir')) {
+        setState(() {
+          _messages.add({
+            'sender': 'bot',
+            'text': 'İyi günler, görüşmek üzere! 😊',
+          });
+          _waitingFor = null;
+        });
+        _scrollToBottom();
+        return;
+      } else {
+        _waitingFor = null;
+        await _fetchBotAnswer(text);
+        return;
+      }
+    }
+
+    // 3. "DESTEK / ŞİKAYET FORMU İSTER MİSİNİZ?" BEKLENİYORSA
+    if (_waitingFor == 'support') {
+      if (lowerText.contains('evet')) {
+        setState(() {
+          _showSupportForm = true;
+          _waitingFor = null;
+        });
+        return;
+      } else if (lowerText.contains('hayır') || lowerText.contains('hayir')) {
+        setState(() {
+          _messages.add({
+            'sender': 'bot',
+            'text':
+                'Mesai saatlerimiz hafta içi 09:00 - 18:00 arasındadır. '
+                'Dilerseniz bu saatler içerisinde 0850 XXX XX XX numaramızdan bizi arayabilirsiniz.',
+          });
+          _waitingFor = null;
+        });
+        _scrollToBottom();
+        return;
+      } else {
+        _waitingFor = null;
+        await _fetchBotAnswer(text);
+        return;
+      }
+    }
+
+    // 4. NORMAL KULLANICI SORUSU (API İSTEĞİ)
+    await _fetchBotAnswer(text);
   }
 
   // ---------------------------------------------------------------------------
@@ -330,7 +308,6 @@ class _HomeScreenState extends State<HomeScreen> {
           backgroundColor: Colors.orange,
         ),
       );
-
       return;
     }
 
@@ -346,7 +323,6 @@ class _HomeScreenState extends State<HomeScreen> {
           backgroundColor: Colors.orange,
         ),
       );
-
       return;
     }
 
@@ -383,6 +359,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
         _waitingFor = null;
       });
+      _scrollToBottom();
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -459,16 +436,17 @@ class _HomeScreenState extends State<HomeScreen> {
                                       color: Colors.white,
                                       boxShadow: [
                                         BoxShadow(
-                                          color: Colors.black.withValues(alpha: 0.15),
+                                          color: Colors.black.withValues(
+                                            alpha: 0.15,
+                                          ),
                                           blurRadius: 6,
                                           offset: const Offset(0, 3),
                                         ),
                                       ],
                                     ),
                                     child: ClipOval(
-                                      // RESMİ SOLA KAYDIRAN KISIM BURASI
                                       child: Transform.translate(
-                                        offset: const Offset(-1.0, 0.0), // -2.0 değeri resmi 2 piksel sola iter.
+                                        offset: const Offset(-1.0, 0.0),
                                         child: Transform.scale(
                                           scale: 1.35,
                                           child: Image.asset(
@@ -483,11 +461,10 @@ class _HomeScreenState extends State<HomeScreen> {
                                   ),
                                 ),
                                 const SizedBox(width: 12),
-                                // BAŞLIK VE ÇEVRİMİÇİ GÖSTERGESİ
-                                Column(
+                                const Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    const Text(
+                                    Text(
                                       'AboneSepeti Destek',
                                       style: TextStyle(
                                         color: Colors.white,
@@ -496,19 +473,18 @@ class _HomeScreenState extends State<HomeScreen> {
                                         letterSpacing: 0.5,
                                       ),
                                     ),
-                                    const SizedBox(height: 2),
+                                    SizedBox(height: 2),
                                     Row(
                                       children: [
-                                        Container(
-                                          width: 8,
-                                          height: 8,
-                                          decoration: const BoxDecoration(
+                                        DecoratedBox(
+                                          decoration: BoxDecoration(
                                             color: Colors.greenAccent,
                                             shape: BoxShape.circle,
                                           ),
+                                          child: SizedBox(width: 8, height: 8),
                                         ),
-                                        const SizedBox(width: 6),
-                                        const Text(
+                                        SizedBox(width: 6),
+                                        Text(
                                           'Çevrimiçi',
                                           style: TextStyle(
                                             color: Colors.white70,
@@ -553,16 +529,14 @@ class _HomeScreenState extends State<HomeScreen> {
         ],
       ),
 
-// SAĞ ALT CHAT BUTONU
+      // SAĞ ALT CHAT BUTONU
       floatingActionButton: MouseRegion(
         onEnter: (_) => setState(() => _isHovered = true),
         onExit: (_) => setState(() => _isHovered = false),
-
         child: AnimatedScale(
           scale: _isHovered && !_isChatOpen ? 1.1 : 1.0,
           duration: const Duration(milliseconds: 200),
           curve: Curves.easeInOutBack,
-
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 200),
             width: 72,
@@ -572,7 +546,9 @@ class _HomeScreenState extends State<HomeScreen> {
               color: Colors.transparent,
               boxShadow: [
                 BoxShadow(
-                  color: _isHovered ? Colors.black.withValues(alpha: 0.3) : Colors.black.withValues(alpha: 0.15),
+                  color: _isHovered
+                      ? Colors.black.withValues(alpha: 0.3)
+                      : Colors.black.withValues(alpha: 0.15),
                   blurRadius: _isHovered ? 16 : 8,
                   offset: _isHovered ? const Offset(0, 8) : const Offset(0, 4),
                 ),
@@ -590,56 +566,60 @@ class _HomeScreenState extends State<HomeScreen> {
                   },
                   child: AnimatedSwitcher(
                     duration: const Duration(milliseconds: 100),
-                    transitionBuilder: (Widget child, Animation<double> animation) {
-                      return ScaleTransition(
-                        scale: animation,
-                        child: FadeTransition(
-                          opacity: animation,
-                          child: child,
-                        ),
-                      );
-                    },
+                    transitionBuilder:
+                        (Widget child, Animation<double> animation) {
+                          return ScaleTransition(
+                            scale: animation,
+                            child: FadeTransition(
+                              opacity: animation,
+                              child: child,
+                            ),
+                          );
+                        },
                     child: _isChatOpen
-                    //SOHBET AÇIKKEN ÇIKAN X BUTONU
                         ? AnimatedContainer(
-                      key: const ValueKey('close_icon'),
-                      width: 72,
-                      height: 72,
-                      duration: const Duration(milliseconds: 200),
-                      curve: Curves.easeInOut,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: _isHovered ? const Color(0xFF007BFF) : Colors.white,
-                      ),
-                      child: Center(
-                        child: Icon(
-                          Icons.close,
-                          color: _isHovered ? Colors.white : const Color(0xFF007BFF),
-                          size: 32,
-                        ),
-                      ),
-                    )
+                            key: const ValueKey('close_icon'),
+                            width: 72,
+                            height: 72,
+                            duration: const Duration(milliseconds: 200),
+                            curve: Curves.easeInOut,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: _isHovered
+                                  ? const Color(0xFF007BFF)
+                                  : Colors.white,
+                            ),
+                            child: Center(
+                              child: Icon(
+                                Icons.close,
+                                color: _isHovered
+                                    ? Colors.white
+                                    : const Color(0xFF007BFF),
+                                size: 32,
+                              ),
+                            ),
+                          )
                         : Container(
-                      key: const ValueKey('bot_icon'),
-                      width: 72,
-                      height: 72,
-                      decoration: const BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: Colors.white,
-                      ),
-                      child: ClipOval(
-                        child: Transform.translate(
-                          offset: const Offset(-2.0, 0.0),
-                          child: Transform.scale(
-                            scale: 1.35,
-                            child: Image.asset(
-                              'assets/images/bot_icon.png',
-                              fit: BoxFit.cover,
+                            key: const ValueKey('bot_icon'),
+                            width: 72,
+                            height: 72,
+                            decoration: const BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: Colors.white,
+                            ),
+                            child: ClipOval(
+                              child: Transform.translate(
+                                offset: const Offset(-2.0, 0.0),
+                                child: Transform.scale(
+                                  scale: 1.35,
+                                  child: Image.asset(
+                                    'assets/images/bot_icon.png',
+                                    fit: BoxFit.cover,
+                                  ),
+                                ),
+                              ),
                             ),
                           ),
-                        ),
-                      ),
-                    ),
                   ),
                 ),
               ),
@@ -669,7 +649,9 @@ class _HomeScreenState extends State<HomeScreen> {
               return Padding(
                 padding: const EdgeInsets.symmetric(vertical: 6.0),
                 child: Row(
-                  mainAxisAlignment: isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
+                  mainAxisAlignment: isUser
+                      ? MainAxisAlignment.end
+                      : MainAxisAlignment.start,
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     if (!isUser) ...[
@@ -689,31 +671,42 @@ class _HomeScreenState extends State<HomeScreen> {
                           ],
                         ),
                         child: ClipOval(
-                          child: Image.asset('assets/images/bot_icon.png', fit: BoxFit.cover),
+                          child: Image.asset(
+                            'assets/images/bot_icon.png',
+                            fit: BoxFit.cover,
+                          ),
                         ),
                       ),
                     ],
-                    // MESAJ BALONU
                     Flexible(
                       child: Container(
                         constraints: BoxConstraints(
                           maxWidth: MediaQuery.of(context).size.width * 0.70,
                         ),
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 12,
+                        ),
                         decoration: BoxDecoration(
-                          color: isUser ? const Color(0xFF007BFF) : const Color(0xFFF1F3F5),
+                          color: isUser
+                              ? const Color(0xFF007BFF)
+                              : const Color(0xFFF1F3F5),
                           borderRadius: BorderRadius.only(
                             topLeft: const Radius.circular(16),
                             topRight: const Radius.circular(16),
-                            bottomLeft: isUser ? const Radius.circular(16) : const Radius.circular(4),
-                            bottomRight: isUser ? const Radius.circular(4) : const Radius.circular(16),
+                            bottomLeft: isUser
+                                ? const Radius.circular(16)
+                                : const Radius.circular(4),
+                            bottomRight: isUser
+                                ? const Radius.circular(4)
+                                : const Radius.circular(16),
                           ),
                           boxShadow: [
                             BoxShadow(
                               color: Colors.black.withValues(alpha: 0.05),
                               blurRadius: 5,
                               offset: const Offset(0, 2),
-                            )
+                            ),
                           ],
                         ),
                         child: Column(
@@ -762,7 +755,10 @@ class _HomeScreenState extends State<HomeScreen> {
                       hintText: 'Mesajınızı yazın...',
                       hintStyle: TextStyle(color: Colors.grey, fontSize: 14),
                       border: InputBorder.none,
-                      contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      contentPadding: EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
                     ),
                     onSubmitted: (_) => _handleSendMessage(),
                   ),
@@ -785,11 +781,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       padding: EdgeInsets.all(12.0),
                       child: Padding(
                         padding: EdgeInsets.only(left: 4.0),
-                        child: Icon(
-                          Icons.send,
-                          color: Colors.white,
-                          size: 20,
-                        ),
+                        child: Icon(Icons.send, color: Colors.white, size: 20),
                       ),
                     ),
                   ),
@@ -822,9 +814,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             textAlign: TextAlign.center,
           ),
-
           const SizedBox(height: 8),
-
           Text(
             'Şu an mesai saatleri dışındayız. Lütfen bilgilerinizi bırakın, size en kısa sürede ulaşalım.',
             style: TextStyle(
@@ -834,25 +824,26 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             textAlign: TextAlign.center,
           ),
-
           const SizedBox(height: 24),
-
           _buildTextField(_nameController, 'Ad Soyad', Icons.person_outline),
           const SizedBox(height: 12),
-
           _buildTextField(_emailController, 'E-Posta', Icons.email_outlined),
           const SizedBox(height: 12),
-
           _buildTextField(_phoneController, 'Telefon', Icons.phone_outlined),
           const SizedBox(height: 12),
-
-          _buildTextField(_subjectController, 'Konu / Başlık', Icons.subject_outlined),
+          _buildTextField(
+            _subjectController,
+            'Konu / Başlık',
+            Icons.subject_outlined,
+          ),
           const SizedBox(height: 12),
-
-          _buildTextField(_supportMessageController, 'Mesajınız', Icons.message_outlined, maxLines: 4),
-
+          _buildTextField(
+            _supportMessageController,
+            'Mesajınız',
+            Icons.message_outlined,
+            maxLines: 4,
+          ),
           const SizedBox(height: 24),
-
           ElevatedButton(
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF007BFF),
@@ -869,9 +860,7 @@ class _HomeScreenState extends State<HomeScreen> {
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
           ),
-
           const SizedBox(height: 8),
-
           TextButton.icon(
             onPressed: () {
               setState(() {
@@ -881,7 +870,11 @@ class _HomeScreenState extends State<HomeScreen> {
             icon: const Icon(Icons.arrow_back, size: 18, color: Colors.grey),
             label: const Text(
               'Sohbete Dön',
-              style: TextStyle(fontSize: 14, color: Colors.grey, fontWeight: FontWeight.w600),
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.grey,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
         ],
@@ -894,11 +887,11 @@ class _HomeScreenState extends State<HomeScreen> {
   // ---------------------------------------------------------------------------
 
   Widget _buildTextField(
-      TextEditingController controller,
-      String label,
-      IconData icon, {
-        int maxLines = 1,
-      }) {
+    TextEditingController controller,
+    String label,
+    IconData icon, {
+    int maxLines = 1,
+  }) {
     return TextField(
       controller: controller,
       maxLines: maxLines,
@@ -906,17 +899,20 @@ class _HomeScreenState extends State<HomeScreen> {
       decoration: InputDecoration(
         labelText: label,
         labelStyle: TextStyle(color: Colors.grey.shade600, fontSize: 14),
-        prefixIcon: maxLines == 1 ? Icon(icon, color: Colors.grey.shade400, size: 22) : null,
+        prefixIcon: maxLines == 1
+            ? Icon(icon, color: Colors.grey.shade400, size: 22)
+            : null,
         alignLabelWithHint: true,
         filled: true,
         fillColor: Colors.grey.shade50,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 16,
+        ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(color: Colors.grey.shade200, width: 1.5),
         ),
-
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: const BorderSide(color: Color(0xFF007BFF), width: 2),

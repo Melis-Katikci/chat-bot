@@ -20,63 +20,7 @@ analyzer = zeyrek.MorphAnalyzer()
 # ==========================================
 # VERİTABANI BAĞLANTISI
 # ==========================================
-# Eren SQL altyapısını kurduğunda burayı güncelleyecek:
-# db_connection = psycopg2.connect(...) veya sqlalchemy session vs.
 db_connection = None 
-
-def metin_koku_bul(metin):
-    temiz_metin = re.sub(r'[^\w\s]', '', metin).lower()
-    analiz_sonucu = analyzer.lemmatize(temiz_metin)
-    kokler = []
-    
-    for kelime_analizi in analiz_sonucu:
-        if kelime_analizi[1]: 
-            kokler.append(kelime_analizi[1][0])
-        else: 
-            kokler.append(kelime_analizi[0])
-            
-    return " ".join(kokler)
-
-def soru_mantikli_mi(soru):
-    temiz_soru = re.sub(r'[^\w\s]', '', soru).lower()
-    kelimeler = temiz_soru.split()
-    
-    if not kelimeler: 
-        return False
-        
-    sesliler = "aeıioöuü"
-    gecerli_kelime_sayisi = 0
-    
-    for kelime in kelimeler:
-        if any(harf in sesliler for harf in kelime) or len(kelime) <= 2:
-            gecerli_kelime_sayisi += 1
-            
-    if (gecerli_kelime_sayisi / len(kelimeler)) < 0.5:
-        return False
-        
-    return True
-
-def yazim_duzelt(metin):
-    duzeltilmis_kelimeler = []
-    bilinmeyen_kelime_sayisi = 0 
-    kelimeler = metin.split()
-    
-    for kelime in kelimeler:
-        if kelime in pdf_kelime_havuzu:
-            duzeltilmis_kelimeler.append(kelime)
-        else:
-            benzerler = difflib.get_close_matches(kelime, pdf_kelime_havuzu, n=1, cutoff=0.8)
-            if benzerler:
-                duzeltilmis_kelimeler.append(benzerler[0])
-            else:
-                bilinmeyen_kelime_sayisi += 1 
-                duzeltilmis_kelimeler.append(kelime)
-                
-    cok_yanlis_mi = False
-    if len(kelimeler) > 0 and (bilinmeyen_kelime_sayisi / len(kelimeler)) >= 0.5:
-        cok_yanlis_mi = True
-            
-    return " ".join(duzeltilmis_kelimeler), cok_yanlis_mi
 
 # ==========================================
 # 1. AŞAMA: CHROMADB VE MODEL HAZIRLIĞI
@@ -97,44 +41,62 @@ collection = client.get_or_create_collection(
 )
 
 # ==========================================
-# 2. AŞAMA: PDF OKUMA VE MADDELERE BÖLME
+# 2. & 3. AŞAMA: SADECE GEREKLİYSE PDF'İ OKU VE VEKTÖRLEŞTİR
 # ==========================================
 pdf_yolu = os.path.join(mevcut_klasor, "aboneSepetiYonerge.pdf")
+pdf_kelime_havuzu = set()
 
-print(f"2. '{pdf_yolu}' dosyası okunuyor...")
-reader = PdfReader(pdf_yolu)
-tam_metin = ""
+# Eğer veritabanı boşsa (ilk çalıştırma) PDF'i oku ve kaydet
+if collection.count() == 0:
+    print(f"2. Veritabanı boş, '{pdf_yolu}' dosyası okunuyor ve vektörleştiriliyor...")
+    reader = PdfReader(pdf_yolu)
+    tam_metin = ""
 
-for sayfa in reader.pages:
-    metin = sayfa.extract_text()
-    if metin:
-        tam_metin += metin + " "
+    for sayfa in reader.pages:
+        metin = sayfa.extract_text()
+        if metin:
+            tam_metin += metin + " "
 
-temiz_tam_metin = re.sub(r'[^\w\s]', '', tam_metin).lower()
-pdf_kelime_havuzu = set(temiz_tam_metin.split())
+    temiz_tam_metin = re.sub(r'[^\w\s]', '', tam_metin).lower()
+    pdf_kelime_havuzu = set(temiz_tam_metin.split())
 
-maddeler = re.split(r'(?=\bMADDE\b)', tam_metin, flags=re.IGNORECASE)
-temiz_maddeler = [m.strip() for m in maddeler if len(m.strip()) > 10]
+    maddeler = re.split(r'(?=\bMADDE\b)', tam_metin, flags=re.IGNORECASE)
+    temiz_maddeler = [m.strip() for m in maddeler if len(m.strip()) > 10]
 
-print(f"-> PDF'ten toplam {len(temiz_maddeler)} adet madde çıkarıldı.\n")
+    print(f"-> PDF'ten toplam {len(temiz_maddeler)} adet madde çıkarıldı.")
+
+    for i, madde_metni in enumerate(temiz_maddeler):
+        doc_id = f"madde_{i+1}"
+        collection.upsert(
+            documents=[f"passage: {madde_metni}"],
+            ids=[doc_id]
+        )
+    print("VEKTÖR HAVUZU BAŞARIYLA HAZIRLANDI VE KAYDEDİLDİ!\n")
+else:
+    print(f"-> ChromaDB hazır: Veritabanında zaten {collection.count()} adet kayıtlı madde var. PDF adımı atlandı.\n")
 
 # ==========================================
-# 3. AŞAMA: VEKTÖRLEŞTİRME VE DB GÜNCELLEME
+# YARDIMCI VE DENETİM FONKSİYONLARI
 # ==========================================
-for i, madde_metni in enumerate(temiz_maddeler):
-    kok_metin = metin_koku_bul(madde_metni)
+def soru_mantikli_mi(soru: str) -> bool:
+    temiz_soru = re.sub(r'[^\w\s]', '', soru).lower()
+    kelimeler = temiz_soru.split()
     
-    doc_id = f"madde_{i+1}"
-    collection.upsert(
-        documents=[madde_metni],
-        ids=[doc_id]
-    )
+    if not kelimeler: 
+        return False
+        
+    sesliler = "aeıioöuü"
+    gecerli_kelime_sayisi = 0
+    
+    for kelime in kelimeler:
+        if any(harf in sesliler for harf in kelime) or len(kelime) <= 2:
+            gecerli_kelime_sayisi += 1
+            
+    if (gecerli_kelime_sayisi / len(kelimeler)) < 0.4:
+        return False
+        
+    return True
 
-print("VEKTÖR HAVUZU BAŞARIYLA HAZIRLANDI VE KAYDEDİLDİ!\n")
-
-# ==========================================
-# MÜŞTERİ HİZMETLERİ YÖNLENDİRME FONKSİYONU
-# ==========================================
 def musteri_hizmetlerine_yonlendir():
     su_an = datetime.datetime.now()
     haftanin_gunu = su_an.weekday() 
@@ -143,70 +105,57 @@ def musteri_hizmetlerine_yonlendir():
     if haftanin_gunu <= 4 and 9 <= saat < 18:
         return "Müşteri hizmetlerimize 0850 XXX XX XX numaralı telefondan ulaşabilirsiniz."
     else:
-        return "Şu an mesai saatleri (Hafta içi 09:00 - 18:00) dışındayız. E-posta yollayarak en kısa sürede size geri dönüş yapılmasını sağlayabilirsiniz."
+        return "Şu an mesai saatleri dışındayız. Destek formu doldurarak bize ulaşabilirsiniz."
 
-def check_faq_table(query_vector, db_connection, similarity_threshold=0.85):
-    """
-    Kullanıcının soru vektörünü FAQ tablosundaki popüler 3 soru ile kıyaslar.
-    """
-    if db_connection is None:
-        return None  # Veritabanı bağlantısı yoksa pas geç
+def check_faq_table(query_vector, db_conn, similarity_threshold=0.85):
+    if db_conn is None:
+        return None
         
-    cursor = db_connection.cursor()
-    
-    vector_str = "[" + ",".join(map(str, query_vector)) + "]"
-    
-    query = """
-        SELECT question, answer, (1 - (question_vector <=> %s::vector)) AS similarity
-        FROM faq
-        ORDER BY similarity DESC
-        LIMIT 3;
-    """
-    
-    cursor.execute(query, (vector_str,))
-    top_faqs = cursor.fetchall()
+    try:
+        cursor = db_conn.cursor()
+        vector_str = "[" + ",".join(map(str, query_vector)) + "]"
+        query = """
+            SELECT question, answer, (1 - (question_vector <=> %s::vector)) AS similarity
+            FROM faq
+            ORDER BY similarity DESC
+            LIMIT 1;
+        """
+        cursor.execute(query, (vector_str,))
+        top_faqs = cursor.fetchall()
 
-    if top_faqs:
-        best_match = top_faqs[0] 
-        question, answer, similarity = best_match
-        
-        if similarity >= similarity_threshold:
-            return answer
+        if top_faqs:
+            question, answer, similarity = top_faqs[0]
+            if similarity >= similarity_threshold:
+                return answer
+    except Exception:
+        return None
 
     return None
 
 # ==========================================
 # 4. AŞAMA: MERKEZİ RAG MOTORU
 # ==========================================
-def cevabi_getir(kullanici_sorusu: str, mevcut_hata_sayisi: int) -> tuple:
-    temiz_kullanici_sorusu = re.sub(r'[^\w\s]', '', kullanici_sorusu).lower()
+def cevabi_getir(kullanici_sorusu: str) -> str:
+    temiz_kullanici_sorusu = kullanici_sorusu.strip()
 
-    if not temiz_kullanici_sorusu:                               
-        return "Lütfen bir daha sorun, daha açıklayıcı ifadeler kullanın.", mevcut_hata_sayisi
+    if not temiz_kullanici_sorusu:                                
+        return "Lütfen sormak istediğiniz konuyu biraz daha detaylandırarak yazınız."
 
-    duzeltilmis_soru, cok_yanlis_mi = yazim_duzelt(temiz_kullanici_sorusu)
-    
-    if cok_yanlis_mi or not soru_mantikli_mi(duzeltilmis_soru):
-        mevcut_hata_sayisi += 1
-        if mevcut_hata_sayisi >= 3:
-            yonlendirme = musteri_hizmetlerine_yonlendir()
-            return f"Üzgünüm, sorunuzu anlamakta zorlanıyorum. {yonlendirme}", 0
-        return "Lütfen bir daha sorun, daha açıklayıcı ifadeler kullanın.", mevcut_hata_sayisi
+    if not soru_mantikli_mi(temiz_kullanici_sorusu):
+        return "Sorunuzu tam olarak anlayamadım. Lütfen sorunuzu daha açık ve anlaşılır şekilde yazınız."
         
-    temiz_soru = metin_koku_bul(duzeltilmis_soru)
-    e5_formatli_soru = f"query: {temiz_soru}"
+    e5_formatli_soru = f"query: {temiz_kullanici_sorusu}"
 
-    # =========================================================================
-    # 🌟 FAQ KONTROLÜ
-    # =========================================================================
-    soru_vektoru = embedding_model([e5_formatli_soru])[0]
+    # FAQ Kontrolü
+    try:
+        soru_vektoru = embedding_model([e5_formatli_soru])[0]
+        faq_answer = check_faq_table(soru_vektoru, globals().get('db_connection'))
+        if faq_answer:
+            return faq_answer
+    except Exception:
+        pass
     
-    faq_answer = check_faq_table(soru_vektoru, globals().get('db_connection'))
-    
-    if faq_answer:
-        return faq_answer, 0
-    # =========================================================================
-    
+    # ChromaDB Arama
     sonuclar = collection.query(
         query_texts=[e5_formatli_soru],
         n_results=1 
@@ -216,38 +165,20 @@ def cevabi_getir(kullanici_sorusu: str, mevcut_hata_sayisi: int) -> tuple:
         bulunan_cevap = sonuclar['documents'][0][0]
         mesafe = sonuclar['distances'][0][0] 
         
-        if mesafe > 0.16:
-            mevcut_hata_sayisi += 1
-            if mevcut_hata_sayisi >= 3:
-                yonlendirme = musteri_hizmetlerine_yonlendir()
-                return f"Kılavuzda bu konuyla ilgili eşleşen bir bilgi bulamadım. {yonlendirme}", 0
-            return "Lütfen bir daha sorun, sorunuzu daha açıklayıcı yazın.", mevcut_hata_sayisi
+        if mesafe > 0.35:
+            yonlendirme = musteri_hizmetlerine_yonlendir()
+            return f"Bu konuyla ilgili kılavuzda net bir bilgi bulamadım. {yonlendirme}"
         else:
-            insansi_cevap = re.sub(r'(?i)^\s*madde\s*\d*\s*(f[ıi]kra\s*\d*)?\s*[.:;,-]?\s*', '', bulunan_cevap)
-            insansi_cevap = re.split(r'(?i)\s*(?=\bMADDE\s+\d+\b|\bFIKRA\s+\d+\b)', insansi_cevap)[0]
-            return insansi_cevap.strip(), 0
+            insansi_cevap = re.sub(r'(?i)^\s*passage:\s*', '', bulunan_cevap)
+            insansi_cevap = re.sub(r'(?i)^\s*madde\s*\d*\s*(f[ıi]kra\s*\d*)?\s*[.:;,-]?\s*', '', insansi_cevap)
+            return insansi_cevap.strip()
     else:
-        return "Veritabanında arama yapılamadı.", mevcut_hata_sayisi
+        return "Sorunuza ait bilgiye ulaşılamadı. Lütfen farklı kelimelerle tekrar deneyiniz."
 
 # ==========================================
-# 5. AŞAMA: FASTAPI WEB SERVİS KATMANI VE OTURUM YÖNETİMİ
+# 5. AŞAMA: FASTAPI WEB SERVİSİ
 # ==========================================
 app = FastAPI(title="Chatbot RAG API")
-
-kullanici_oturum_durumu = {}
-
-def evet_hayir_analiz_et(mesaj):
-    gecerli_cevaplar = ["evet", "hayır", "hayir", "yes", "no"]
-    
-    if mesaj not in gecerli_cevaplar:
-        benzerler = difflib.get_close_matches(mesaj, gecerli_cevaplar, n=1, cutoff=0.5)
-        if benzerler:
-            mesaj = benzerler[0]
-            
-    if mesaj == "hayir":
-        mesaj = "hayır"
-        
-    return mesaj
 
 class SoruIstek(BaseModel):
     kullanici_id: str = "kullanici_1" 
@@ -255,70 +186,9 @@ class SoruIstek(BaseModel):
 
 @app.post("/api/rag/sor")
 def rag_soru_sor(istek: SoruIstek):
-    k_id = istek.kullanici_id
-    mesaj = istek.mesaj.strip().lower()
-
-    if k_id not in kullanici_oturum_durumu:
-        kullanici_oturum_durumu[k_id] = {"durum": "soru_bekliyor", "hata_sayisi": 0}
-
-    oturum = kullanici_oturum_durumu[k_id]
-
-    if oturum["durum"] == "yanit_yeterli_mi_bekliyor":
-        analiz_edilen_mesaj = evet_hayir_analiz_et(mesaj)
-        
-        if analiz_edilen_mesaj in ["evet", "yes"]:
-            oturum["durum"] = "baska_soru_var_mi_bekliyor"
-            oturum["hata_sayisi"] = 0
-            return {"cevap": "Yardımcı olmamı istediğiniz başka bir konu var mı? (Evet/Hayır)"}
-        
-        elif analiz_edilen_mesaj in ["hayır", "no"]:
-            oturum["durum"] = "soru_bekliyor"
-            oturum["hata_sayisi"] = 0
-            yonlendirme = musteri_hizmetlerine_yonlendir()
-            return {"cevap": f"Anladım, size daha iyi destek olabilmemiz için {yonlendirme}"}
-        
-        else:
-            oturum["hata_sayisi"] += 1
-            if oturum["hata_sayisi"] >= 3:
-                oturum["durum"] = "soru_bekliyor" 
-                oturum["hata_sayisi"] = 0
-                return {"cevap": "Geçersiz girişler yaptınız. Daha sonra tekrar soru sorabilirsiniz."}
-            return {"cevap": "Lütfen sadece 'Evet' veya 'Hayır' yazınız."}
-
-    elif oturum["durum"] == "baska_soru_var_mi_bekliyor":
-        analiz_edilen_mesaj = evet_hayir_analiz_et(mesaj)
-        
-        if analiz_edilen_mesaj in ["evet", "yes"]:
-            oturum["durum"] = "soru_bekliyor"
-            oturum["hata_sayisi"] = 0
-            return {"cevap": "Lütfen sormak istediğiniz yeni soruyu yazınız."}
-        
-        elif analiz_edilen_mesaj in ["hayır", "no"]:
-            oturum["durum"] = "soru_bekliyor"
-            oturum["hata_sayisi"] = 0
-            return {"cevap": "Görüşmek üzere! İyi günler dileriz."}
-        
-        else:
-            oturum["hata_sayisi"] += 1
-            if oturum["hata_sayisi"] >= 3:
-                oturum["durum"] = "soru_bekliyor" 
-                oturum["hata_sayisi"] = 0
-                return {"cevap": "Geçersiz girişler yaptınız. Daha sonra tekrar soru sorabilirsiniz."}
-            return {"cevap": "Lütfen sadece 'Evet' veya 'Hayır' yazınız."}
-
-    else:
-        # cevabi_getir artık cevap ve güncel hata sayısını birlikte döndürüyor
-        cevap, guncel_hata = cevabi_getir(mesaj, oturum["hata_sayisi"])
-        oturum["hata_sayisi"] = guncel_hata
-        
-        hata_kelimeleri = ["Lütfen bir daha", "Üzgünüm", "Kılavuzda", "Veritabanında"]
-        basarili_bir_cevap_mi = not any(hata in cevap for hata in hata_kelimeleri)
-
-        if basarili_bir_cevap_mi:
-            oturum["durum"] = "yanit_yeterli_mi_bekliyor"
-            return {"cevap": f"{cevap}\n\nBu yanıt yeterli oldu mu? (Evet/Hayır)"}
-        else:
-            return {"cevap": cevap}
+    mesaj = istek.mesaj.strip()
+    cevap = cevabi_getir(mesaj)
+    return {"cevap": cevap}
 
 # ==========================================
 # 6. AŞAMA: SERVİSİ BAŞLATMA
