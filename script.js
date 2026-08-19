@@ -77,9 +77,10 @@ async function sendMessage() {
         return;
     }
 
-    // Spring Boot Backend'e İstek At
+    
+   // Spring Boot Backend'e İstek At
     try {
-        const response = await fetch('http://localhost:8080/api/chat/ask', {
+        const response = await fetch('http://localhost:9000/api/chat/ask', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ question: userMsg, userId: 1 })
@@ -138,7 +139,7 @@ function handleFormSubmit(event) {
 
     const formData = { name, email, phone, subject, message };
 
-    fetch('http://localhost:8080/api/support', { 
+    fetch('http://localhost:9000/api/support', { 
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData)

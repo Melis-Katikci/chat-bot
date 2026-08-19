@@ -8,6 +8,7 @@ from chromadb.utils import embedding_functions
 from pypdf import PdfReader
 import nltk
 import datetime
+import psycopg2
 
 from fastapi import FastAPI
 from pydantic import BaseModel
@@ -20,7 +21,7 @@ analyzer = zeyrek.MorphAnalyzer()
 # ==========================================
 # VERİTABANI BAĞLANTISI
 # ==========================================
-db_connection = None 
+db_connection = None
 
 # ==========================================
 # 1. AŞAMA: CHROMADB VE MODEL HAZIRLIĞI
@@ -194,4 +195,4 @@ def rag_soru_sor(istek: SoruIstek):
 # 6. AŞAMA: SERVİSİ BAŞLATMA
 # ==========================================
 if __name__ == "__main__":
-    uvicorn.run(app, host="127.0.0.1", port=8000)
+    uvicorn.run(app, host="0.0.0.0", port=8000)
