@@ -3,48 +3,87 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chatbot Destek Widget</title>
+    <title>AboneSepeti Destek</title>
     <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 <body>
 
-    <!-- Ekranın Sağ Altındaki Buton --> 
-    <button id="chat-toggle-btn" onclick="toggleChat()">💬 Canlı Destek</button>
-
     <!-- Sabit Chatbot ve Form Penceresi -->
-    <div id="chat-widget" class="chat-widget hidden">
+    <div id="chat-widget" class="chat-widget">
+        <!-- Gradient Başlık -->
         <div class="chat-header">
-            <span>AboneSepeti Destek</span>
-            <button class="close-btn" onclick="toggleChat()">✖</button>
+            <div class="header-info">
+                <div class="bot-avatar-container">
+                    <img src="file:///C:/Users/ereno/Desktop/chat-bot/mobile_app/assets/images/bot_icon.png" alt="Bot" class="bot-avatar">
+                </div>
+                <div class="header-text">
+                    <span class="title">AboneSepeti Destek</span>
+                    <div class="status">
+                        <span class="status-dot"></span> Çevrimiçi
+                    </div>
+                </div>
+            </div>
+            <button class="close-btn" onclick="toggleChat()"><i class="fas fa-times"></i></button>
         </div>
 
         <!-- Chat Sohbet Ekranı -->
         <div id="chat-body">
             <div id="chat-box" class="chat-box">
-                <div class="bot-msg">Merhaba! Size nasıl yardımcı olabilirim?</div>
+                <!-- Varsayılan Bot Mesajı -->
+                <div class="message bot-message">
+                    <div class="avatar-wrapper">
+                        <img src="file:///C:/Users/ereno/Desktop/chat-bot/mobile_app/assets/images/bot_icon.png" alt="Bot" class="msg-avatar">
+                    </div>
+                    <div class="msg-bubble">Merhaba! AboneSepeti Canlı Destek sistemine hoş geldiniz. Size nasıl yardımcı olabilirim?</div>
+                </div>
             </div>
             <div class="chat-input-area">
-                <input type="text" id="user-input" placeholder="Mesajınızı yazın...">
-                <button onclick="sendMessage()">Gönder</button>
+                <div class="input-wrapper">
+                    <input type="text" id="user-input" placeholder="Mesajınızı yazın..." onkeypress="handleKeyPress(event)">
+                </div>
+                <button class="send-btn" onclick="sendMessage()"><i class="fas fa-paper-plane"></i></button>
             </div>
         </div>
 
         <!-- Mesai Dışı Şikayet/Destek Formu Ekranı -->
-        <div id="support-form-container" class="hidden">
+        <div id="support-form-container" class="hidden-view">
             <h3>Destek / Şikayet Formu</h3>
-            <p class="subtitle">Mesai saatleri dışındayız. Bilgilerinizi bırakın, size ulaşalım.</p>
+            <p class="subtitle">Şu an mesai saatleri dışındayız. Lütfen bilgilerinizi bırakın, size en kısa sürede ulaşalım.</p>
             
             <form id="supportForm" onsubmit="handleFormSubmit(event)">
-                <input type="text" id="name" required placeholder="Ad Soyad">
-                <input type="email" id="email" required placeholder="E-Posta Adresi">
-                <input type="tel" id="phone" required placeholder="Telefon Numaranız">
-                <input type="text" id="subject" required placeholder="Şikayet/Talep Başlığı">
-                <textarea id="message" rows="3" required placeholder="Şikayetiniz veya Mesajınız"></textarea>
+                <div class="input-group">
+                    <i class="far fa-user"></i>
+                    <input type="text" id="name" required placeholder="Ad Soyad">
+                </div>
+                <div class="input-group">
+                    <i class="far fa-envelope"></i>
+                    <input type="email" id="email" required placeholder="E-Posta Adresi">
+                </div>
+                <div class="input-group">
+                    <i class="fas fa-phone-alt"></i>
+                    <input type="tel" id="phone" required placeholder="Telefon Numaranız">
+                </div>
+                <div class="input-group">
+                    <i class="fas fa-heading"></i>
+                    <input type="text" id="subject" required placeholder="Şikayet/Talep Başlığı">
+                </div>
+                <div class="input-group">
+                    <i class="far fa-comment-dots"></i>
+                    <textarea id="message" rows="3" required placeholder="Şikayetiniz veya Mesajınız"></textarea>
+                </div>
                 
                 <button type="submit" id="submitBtn">Gönder</button>
+                <button type="button" class="back-btn" onclick="returnToChat()"><i class="fas fa-arrow-left"></i> Sohbete Dön</button>
             </form>
             <div id="formFeedback"></div>
         </div>
+    </div>
+
+    <!-- Sağ Alt Buton (FAB) -->
+    <div class="fab-container" onclick="toggleChat()" id="fab-button">
+        <img src="file:///C:/Users/ereno/Desktop/chat-bot/mobile_app/assets/images/bot_icon.png" id="fab-icon" alt="Chat">
+        <i class="fas fa-times" id="fab-close" style="display:none;"></i>
     </div>
 
     <script src="script.js"></script>

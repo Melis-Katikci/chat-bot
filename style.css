@@ -1,115 +1,268 @@
 body {
-    font-family: Arial, sans-serif;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     background-color: #f4f4f9;
     margin: 0;
 }
 
-/* Sağ Alttaki Destek Butonu */ 
-#chat-toggle-btn {
+/* FAB Butonu ve Animasyonları */
+.fab-container {
     position: fixed;
-    bottom: 20px;
-    right: 20px;
-    background-color: #007bff;
-    color: white;
-    border: none;
-    padding: 12px 20px;
-    border-radius: 25px;
+    bottom: 24px;
+    right: 24px;
+    width: 72px;
+    height: 72px;
+    background-color: white;
+    border-radius: 50%;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+    display: flex;
+    justify-content: center;
+    align-items: center;
     cursor: pointer;
-    font-weight: bold;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
     z-index: 1000;
+    transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.2s, background-color 0.2s;
+}
+.fab-container:hover {
+    transform: scale(1.1);
+    box-shadow: 0 8px 16px rgba(0,0,0,0.3);
+}
+.fab-container.active {
+    background-color: #007BFF;
+}
+.fab-container img {
+    width: 50px; 
+    height: 50px; 
+    border-radius: 50%;
+}
+.fab-container i {
+    font-size: 32px; 
+    color: white;
 }
 
-/* Sağ Altta Açılan Sabit Pencere */
+/* Chat Penceresi (Süzülme Animasyonlu) */
 .chat-widget {
     position: fixed;
-    bottom: 75px;
-    right: 20px;
-    width: 340px;
+    bottom: 110px;
+    right: 24px;
+    width: 350px;
+    height: 520px;
     background: #fff;
-    border-radius: 10px;
-    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
-    overflow: hidden;
+    border-radius: 16px;
+    box-shadow: 0 12px 24px rgba(0,0,0,0.15);
+    border: 1px solid #e0e0e0;
     z-index: 1000;
     display: flex;
     flex-direction: column;
+    
+    /* Animasyon Başlangıcı */
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
+    pointer-events: none;
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+.chat-widget.show {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    pointer-events: auto;
 }
 
+/* Gradient Header */
 .chat-header {
-    background-color: #007bff;
+    background: linear-gradient(to bottom right, #0056b3, #007BFF);
     color: white;
-    padding: 12px;
-    font-weight: bold;
+    padding: 12px 16px;
+    border-radius: 15px 15px 0 0;
     display: flex;
     justify-content: space-between;
     align-items: center;
 }
-
-.close-btn {
-    background: none;
-    border: none;
-    color: white;
-    font-size: 1rem;
-    cursor: pointer;
-    width: auto;
+.header-info { display: flex; align-items: center; gap: 12px; }
+.bot-avatar-container {
+    width: 40px; height: 40px; background: white; border-radius: 50%;
+    display: flex; justify-content: center; align-items: center;
+    box-shadow: 0 3px 6px rgba(0,0,0,0.15);
 }
+.bot-avatar { width: 35px; height: 35px; border-radius: 50%; }
+.title { font-weight: bold; font-size: 16px; display: block;}
+.status { font-size: 12px; color: rgba(255,255,255,0.7); display: flex; align-items: center; gap: 6px; margin-top: 2px;}
+.status-dot { width: 8px; height: 8px; background: #69f0ae; border-radius: 50%; }
+.close-btn { background: none; border: none; color: white; font-size: 18px; cursor: pointer; }
 
+/* Sohbet Alanı ve Balonlar (Flutter Birebir Eşleme) */
 .chat-box {
-    height: 250px;
+    flex: 1;
     overflow-y: auto;
-    padding: 10px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+.message { display: flex; align-items: flex-end; max-width: 80%; }
+.bot-message { align-self: flex-start; }
+.user-message { align-self: flex-end; flex-direction: row-reverse; }
+
+.avatar-wrapper { margin-right: 8px; }
+.msg-avatar { width: 28px; height: 28px; border-radius: 50%; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+
+.msg-bubble {
+    padding: 12px 16px;
+    font-size: 14.5px;
+    line-height: 1.3;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+}
+.bot-message .msg-bubble {
+    background: #F1F3F5;
+    color: #1a1a1a;
+    border-radius: 16px 16px 16px 4px;
+}
+.user-message .msg-bubble {
+    background: #007BFF;
+    color: white;
+    border-radius: 16px 16px 4px 16px;
 }
 
+/* Mesaj Yazma Alanı */
 .chat-input-area {
     display: flex;
-    padding: 10px;
+    padding: 12px;
     border-top: 1px solid #eee;
+    background: white;
+    align-items: center;
+    gap: 8px;
 }
-
-.chat-input-area input {
+.input-wrapper {
     flex: 1;
-    padding: 8px;
+    background: #f8f9fa;
+    border-radius: 24px;
     border: 1px solid #ddd;
-    border-radius: 4px;
+    padding: 12px 16px;
+    display: flex;
 }
-
-#support-form-container {
-    padding: 15px;
-}
-
-#support-form-container input, 
-#support-form-container textarea {
+.input-wrapper input {
+    border: none;
+    background: transparent;
     width: 100%;
-    margin-bottom: 8px;
-    padding: 8px;
-    box-sizing: border-box;
-    border: 1px solid #ccc;
-    border-radius: 4px;
+    outline: none;
+    font-size: 14px;
 }
-
-button {
-    background-color: #007bff;
+.send-btn {
+    background-color: #007BFF;
     color: white;
     border: none;
-    padding: 8px 12px;
-    border-radius: 4px;
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: background 0.2s;
+}
+.send-btn:hover { background-color: #0056b3; }
+
+/* Form Arayüzü */
+#support-form-container { padding: 24px; text-align: center; }
+#support-form-container h3 { margin-top: 0; font-weight: 800; font-size: 20px; color: #1a1a1a; }
+.subtitle { font-size: 13px; color: #666; margin-bottom: 24px; line-height: 1.4; }
+
+.input-group {
+    position: relative;
+    margin-bottom: 12px;
+}
+.input-group i {
+    position: absolute;
+    left: 14px;
+    top: 14px;
+    color: #aaa;
+}
+.input-group input, .input-group textarea {
+    width: 100%;
+    padding: 14px 14px 14px 40px;
+    box-sizing: border-box;
+    border: 1.5px solid #eee;
+    border-radius: 12px;
+    background: #fafafa;
+    font-size: 14px;
+    transition: border-color 0.3s;
+}
+.input-group input:focus, .input-group textarea:focus {
+    border-color: #007BFF;
+    outline: none;
+}
+
+#submitBtn {
+    background-color: #007BFF;
+    color: white;
+    border: none;
+    padding: 14px;
+    border-radius: 12px;
     cursor: pointer;
     width: 100%;
-}
-
-.hidden {
-    display: none !important;
-}
-
-.subtitle {
-    font-size: 0.85rem;
-    color: #666;
-    margin-top: -5px;
-    margin-bottom: 10px;
-}
-
-#formFeedback {
+    font-weight: bold;
+    font-size: 16px;
     margin-top: 10px;
-    font-size: 0.9rem;
-    text-align: center;
 }
+.back-btn {
+    background: none;
+    color: #888;
+    border: none;
+    margin-top: 12px;
+    cursor: pointer;
+    font-weight: 600;
+    width: 100%;
+}
+#chat-body {
+    display: flex;
+    flex-direction: column;
+    flex: 1; 
+    height: 100%;
+}
+.fab-container {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    width: 72px;
+    height: 72px;
+    background-color: white;
+    border-radius: 50%;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    z-index: 1000;
+    overflow: hidden; 
+    transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.2s, background-color 0.2s;
+}
+.fab-container img {
+    width: 100%; 
+    height: 100%; 
+    object-fit: cover;
+    transform: scale(1.35) translateX(-2px); 
+}
+.bot-avatar-container {
+    width: 40px; height: 40px; background: white; border-radius: 50%;
+    display: flex; justify-content: center; align-items: center;
+    box-shadow: 0 3px 6px rgba(0,0,0,0.15);
+    overflow: hidden; 
+}
+.bot-avatar { 
+    width: 100%; height: 100%;
+    object-fit: cover; 
+    transform: scale(1.35) translateX(-1px); 
+}
+
+.avatar-wrapper { 
+    width: 28px; height: 28px; 
+    margin-right: 8px; 
+    border-radius: 50%;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    overflow: hidden; 
+    flex-shrink: 0; 
+}
+.msg-avatar { 
+    width: 100%; height: 100%; 
+    object-fit: cover; 
+    transform: scale(1.35) translateX(-1px); 
+}
+.hidden-view { display: none !important; }
+#formFeedback { margin-top: 15px; font-weight: bold; }
