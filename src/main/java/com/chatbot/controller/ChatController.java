@@ -66,7 +66,7 @@ public class ChatController {
         // 3. FAQ tablosunda bulunamadıysa Python FastAPI Servisine Git (RAG)
         if (aiResponse == null || aiResponse.isBlank()) {
             try {
-                String pythonUrl = "http://127.0.0.1:8000/api/rag/sor";
+                String pythonUrl = "http://rag-service:8000/api/rag/sor";
 
                 Map<String, String> pythonRequest = new HashMap<>();
                 pythonRequest.put("mesaj", userQuery);

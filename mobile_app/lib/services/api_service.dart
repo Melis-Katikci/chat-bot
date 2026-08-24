@@ -12,11 +12,11 @@ class ApiService {
   // ---------------------------------------------------------------------------
   static String get baseUrl {
     if (kIsWeb || defaultTargetPlatform == TargetPlatform.windows) {
-      return 'http://localhost:9000/api'; // Windows Masaüstü ve Web için Gateway Portu
+      return 'http://localhost:8080/api'; // Windows Masaüstü ve Web için Gateway Portu
     } else if (defaultTargetPlatform == TargetPlatform.android) {
-      return 'http://10.0.2.2:9000/api'; // Android Emülatör için Gateway Portu
+      return 'http://10.0.2.2:8080/api'; // Android Emülatör için Gateway Portu
     } else {
-      return 'http://localhost:9000/api';
+      return 'http://localhost:8080/api';
     }
   }
 

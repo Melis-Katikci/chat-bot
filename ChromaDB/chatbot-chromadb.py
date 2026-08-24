@@ -4,6 +4,7 @@ import chromadb
 import zeyrek  
 import difflib
 import logging
+from contextlib import asynccontextmanager
 from chromadb.utils import embedding_functions
 from pypdf import PdfReader
 import nltk
@@ -19,62 +20,67 @@ nltk.download('punkt_tab', quiet=True)
 analyzer = zeyrek.MorphAnalyzer()
 
 # ==========================================
-# VERİTABANI BAĞLANTISI
+# GLOBAL DEĞİŞKENLER
 # ==========================================
 db_connection = None
+client = None
+collection = None
+embedding_model = None
 
 # ==========================================
-# 1. AŞAMA: CHROMADB VE MODEL HAZIRLIĞI
+# FASTAPI LIFESPAN (UYGULAMA BAŞLANGIÇ YÖNETİMİ)
 # ==========================================
-print("1. ChromaDB başlatılıyor ve Vektör Modeli yükleniyor...")
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    global client, collection, embedding_model
+    print("\n" + "="*50)
+    print(">>> 1. ChromaDB başlatılıyor ve Vektör Modeli yükleniyor...")
+    print("="*50)
 
-mevcut_klasor = os.path.dirname(os.path.abspath(__file__))
-db_kayit_yolu = os.path.join(mevcut_klasor, "chroma_db_abone")
+    mevcut_klasor = os.path.dirname(os.path.abspath(__file__))
+    db_kayit_yolu = os.path.join(mevcut_klasor, "chroma_db_abone")
 
-client = chromadb.PersistentClient(path=db_kayit_yolu)
+    client = chromadb.PersistentClient(path=db_kayit_yolu)
+    embedding_model = embedding_functions.SentenceTransformerEmbeddingFunction(
+        model_name="intfloat/multilingual-e5-base"
+    )
 
-embedding_model = embedding_functions.SentenceTransformerEmbeddingFunction(model_name="intfloat/multilingual-e5-base")
+    collection = client.get_or_create_collection(
+        name="abonesepeti_yonerge_e5_cosine",
+        embedding_function=embedding_model,
+        metadata={"hnsw:space": "cosine"}
+    )
 
-collection = client.get_or_create_collection(
-    name="abonesepeti_yonerge_e5_cosine",
-    embedding_function=embedding_model,
-    metadata={"hnsw:space": "cosine"}
-)
+    pdf_yolu = os.path.join(mevcut_klasor, "aboneSepetiYonerge.pdf")
 
-# ==========================================
-# 2. & 3. AŞAMA: SADECE GEREKLİYSE PDF'İ OKU VE VEKTÖRLEŞTİR
-# ==========================================
-pdf_yolu = os.path.join(mevcut_klasor, "aboneSepetiYonerge.pdf")
-pdf_kelime_havuzu = set()
+    # Eğer veritabanı boşsa PDF'i oku ve kaydet
+    if collection.count() == 0 and os.path.exists(pdf_yolu):
+        print(f">>> 2. Veritabanı boş, '{pdf_yolu}' dosyası okunuyor ve vektörleştiriliyor...")
+        reader = PdfReader(pdf_yolu)
+        tam_metin = ""
 
-# Eğer veritabanı boşsa (ilk çalıştırma) PDF'i oku ve kaydet
-if collection.count() == 0:
-    print(f"2. Veritabanı boş, '{pdf_yolu}' dosyası okunuyor ve vektörleştiriliyor...")
-    reader = PdfReader(pdf_yolu)
-    tam_metin = ""
+        for sayfa in reader.pages:
+            metin = sayfa.extract_text()
+            if metin:
+                tam_metin += metin + " "
 
-    for sayfa in reader.pages:
-        metin = sayfa.extract_text()
-        if metin:
-            tam_metin += metin + " "
+        maddeler = re.split(r'(?=\bMADDE\b)', tam_metin, flags=re.IGNORECASE)
+        temiz_maddeler = [m.strip() for m in maddeler if len(m.strip()) > 10]
 
-    temiz_tam_metin = re.sub(r'[^\w\s]', '', tam_metin).lower()
-    pdf_kelime_havuzu = set(temiz_tam_metin.split())
+        print(f"-> PDF'ten toplam {len(temiz_maddeler)} adet madde çıkarıldı.")
 
-    maddeler = re.split(r'(?=\bMADDE\b)', tam_metin, flags=re.IGNORECASE)
-    temiz_maddeler = [m.strip() for m in maddeler if len(m.strip()) > 10]
+        for i, madde_metni in enumerate(temiz_maddeler):
+            doc_id = f"madde_{i+1}"
+            collection.upsert(
+                documents=[f"passage: {madde_metni}"],
+                ids=[doc_id]
+            )
+        print(">>> VEKTÖR HAVUZU BAŞARIYLA HAZIRLANDI VE KAYDEDİLDİ!\n")
+    else:
+        print(f"-> ChromaDB hazır: Veritabanında {collection.count()} adet kayıtlı madde var. PDF adımı atlandı.\n")
 
-    print(f"-> PDF'ten toplam {len(temiz_maddeler)} adet madde çıkarıldı.")
-
-    for i, madde_metni in enumerate(temiz_maddeler):
-        doc_id = f"madde_{i+1}"
-        collection.upsert(
-            documents=[f"passage: {madde_metni}"],
-            ids=[doc_id]
-        )
-    print("VEKTÖR HAVUZU BAŞARIYLA HAZIRLANDI VE KAYDEDİLDİ!\n")
-else:
-    print(f"-> ChromaDB hazır: Veritabanında zaten {collection.count()} adet kayıtlı madde var. PDF adımı atlandı.\n")
+    print(">>> Chatbot RAG Servisi 8000 Portunda İstek Almaya Hazır! <<<\n")
+    yield
 
 # ==========================================
 # YARDIMCI VE DENETİM FONKSİYONLARI
@@ -134,7 +140,7 @@ def check_faq_table(query_vector, db_conn, similarity_threshold=0.85):
     return None
 
 # ==========================================
-# 4. AŞAMA: MERKEZİ RAG MOTORU
+# MERKEZİ RAG MOTORU
 # ==========================================
 def cevabi_getir(kullanici_sorusu: str) -> str:
     temiz_kullanici_sorusu = kullanici_sorusu.strip()
@@ -147,10 +153,13 @@ def cevabi_getir(kullanici_sorusu: str) -> str:
         
     e5_formatli_soru = f"query: {temiz_kullanici_sorusu}"
 
+    if collection is None or embedding_model is None:
+        return "Vektör modeli henüz hazırlanıyor, lütfen birkaç saniye sonra tekrar deneyiniz."
+
     # FAQ Kontrolü
     try:
         soru_vektoru = embedding_model([e5_formatli_soru])[0]
-        faq_answer = check_faq_table(soru_vektoru, globals().get('db_connection'))
+        faq_answer = check_faq_table(soru_vektoru, db_connection)
         if faq_answer:
             return faq_answer
     except Exception:
@@ -177,9 +186,9 @@ def cevabi_getir(kullanici_sorusu: str) -> str:
         return "Sorunuza ait bilgiye ulaşılamadı. Lütfen farklı kelimelerle tekrar deneyiniz."
 
 # ==========================================
-# 5. AŞAMA: FASTAPI WEB SERVİSİ
+# FASTAPI WEB SERVİSİ
 # ==========================================
-app = FastAPI(title="Chatbot RAG API")
+app = FastAPI(title="Chatbot RAG API", lifespan=lifespan)
 
 class SoruIstek(BaseModel):
     kullanici_id: str = "kullanici_1" 
@@ -192,7 +201,7 @@ def rag_soru_sor(istek: SoruIstek):
     return {"cevap": cevap}
 
 # ==========================================
-# 6. AŞAMA: SERVİSİ BAŞLATMA
+# SERVİSİ BAŞLATMA
 # ==========================================
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)

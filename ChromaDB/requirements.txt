@@ -1,6 +1,10 @@
-pip install chromadb
-pip install sentence-transformers
-pip install pypdf
-pip install langchain-text-splitters
-pip install zeyrek sentence-transformers
-pip install difflib
+fastapi
+uvicorn
+chromadb
+sentence-transformers
+pypdf
+langchain-text-splitters
+zeyrek
+nltk
+pydantic
+psycopg2-binary
