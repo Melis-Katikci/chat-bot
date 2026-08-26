@@ -76,6 +76,14 @@ async function sendMessage() {
         waitingForConsent = true;
         return;
     }
+    // Mesajdaki noktalama işaretlerini ve boşlukları silip sadece harfleri alıyoruz (örn: "selam!" -> "selam")
+    const cleanedMsg = userMsg.toLowerCase().replace(/[^a-zçğıöşü]/g, ''); 
+    const greetings = ['merhaba', 'merhabalar', 'meraba', 'merab', 'selam', 'selamlar', 'slm', 'mrb'];
+    
+    if (greetings.includes(cleanedMsg)) {
+        addBotMessage("Merhabalar. Dilerseniz Yardımcı olmamı istediğiniz konuyu belirtin");
+        return; // return diyerek kodun aşağıya (backend'e) gitmesini engelliyoruz
+        }
 
     
    // Spring Boot Backend'e İstek At
@@ -103,7 +111,7 @@ function addBotMessage(text) {
     chatBox.innerHTML += `
         <div class="message bot-message">
             <div class="avatar-wrapper">
-                <img src="file:///C:/Users/ereno/Desktop/chat-bot/mobile_app/assets/images/bot_icon.png" alt="Bot" class="msg-avatar">
+                <img src="mobile_app/assets/images/bot_icon.png" alt="Bot" class="msg-avatar">
             </div>
             <div class="msg-bubble">${text}</div>
         </div>
