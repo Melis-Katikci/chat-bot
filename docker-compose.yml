@@ -1,6 +1,25 @@
 version: '3.8'
 
 services:
+  # 0. Ortak PostgreSQL Veritabanı Servisi (Docker İçinde)
+  postgres-db:
+    image: postgres:15
+    container_name: chatbot_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: postgres
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgrespassword
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 3s
+      timeout: 3s
+      retries: 5
+
   # 1. Python RAG Servisi
   rag-service:
     build:
@@ -13,7 +32,7 @@ services:
       - ./ChromaDB/chroma_db_abone:/app/chroma_db_abone
     restart: unless-stopped
 
-  # 2. Spring Boot Backend
+  # 2. Spring Boot Backend Servisi
   backend-service:
     build:
       context: .
@@ -23,6 +42,15 @@ services:
       - "8080:8080"
     environment:
       - RAG_SERVICE_URL=http://rag-service:8000/api/rag/sor
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres-db:5432/postgres
+      - SPRING_DATASOURCE_USERNAME=postgres
+      - SPRING_DATASOURCE_PASSWORD=postgrespassword
     depends_on:
-      - rag-service
+      postgres-db:
+        condition: service_healthy
+      rag-service:
+        condition: service_started
     restart: unless-stopped
+
+volumes:
+  postgres_data:
