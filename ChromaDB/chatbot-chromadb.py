@@ -139,6 +139,92 @@ def check_faq_table(query_vector, db_conn, similarity_threshold=0.85):
 
     return None
 
+def normalize_metin(metin: str) -> str:
+    # Noktalama işaretlerini temizler ve küçük harfe çevirir (kelime eşleşmesi için)
+    return re.sub(r'[^\w\s]', '', metin).lower()
+
+def anlamli_kelimeleri_cikar(soru: str) -> list:
+    temiz = normalize_metin(soru)
+    # 3 harften kısa kelimeleri ve çok yaygın bağlaçları filtreliyoruz
+    yasakli = ["bir", "ile", "için", "nasıl", "neden", "hangi"]
+    kelimeler = temiz.split()
+    return [k for k in kelimeler if len(k) > 2 and k not in yasakli]
+
+def kosinus_mesafesinden_taban_skor(mesafe: float) -> float:
+    try:
+        # Mesafeyi 100 üzerinden bir skora çeviriyoruz (0 mesafe = 100 skor)
+        oran = (1.0 - float(mesafe)) * 100.0
+        return round(max(0.0, min(100.0, oran)), 2)
+    except Exception:
+        return 0.0
+
+def hesapla_rerank_skoru(bulunan_metin: str, taban_uyum: float, anlamli_kelimeler: list) -> float:
+    if not bulunan_metin:
+        return 0.0
+
+    metin_normalize = normalize_metin(bulunan_metin)
+    metin_kelimeleri = metin_normalize.split() # Kelimeleri ayırıyoruz
+    eslesen_kelime_sayisi = 0
+    
+    if anlamli_kelimeler:
+        for kelime in anlamli_kelimeler:
+            # 1. Eski Mantık: Kök olarak geçiyor mu?
+            kok = kelime[:5] if len(kelime) > 5 else kelime
+            if kok in metin_normalize:
+                eslesen_kelime_sayisi += 1
+                continue # Bulduysak difflib'e gerek yok, sonrakine geç
+            
+            # cutoff=0.75 demek, %75 ve üzeri benzerlikteki kelimeleri kabul et demek
+            benzerler = difflib.get_close_matches(kelime, metin_kelimeleri, n=1, cutoff=0.75)
+            if benzerler:
+                eslesen_kelime_sayisi += 1
+                
+        kelime_oran_skoru = (eslesen_kelime_sayisi / len(anlamli_kelimeler)) * 100.0
+    else:
+        kelime_oran_skoru = 0.0
+
+    # KATI KURAL: Eğer sorudaki hiçbir kelime, kök veya yazım hatalı benzeri metinde geçmiyorsa sıfırla!
+    if kelime_oran_skoru == 0.0 and len(anlamli_kelimeler) > 0:
+        return 0.0
+
+    # FORMÜL: Vektör Anlamı %65, Kök/Benzerlik Eşleşmesi %35 etkili
+    nihai_skor = (taban_uyum * 0.65) + (kelime_oran_skoru * 0.35)
+    
+    return round(max(0.0, min(100.0, nihai_skor)), 2)
+
+def karsilama_mesaji_mi(soru: str) -> bool:
+    selamlamalar = ["merhaba", "selam", "selamlar", "günaydın", "iyi günler", "iyi akşamlar", "mrb", "slm"]
+    temiz = re.sub(r'[^\w\s]', '', soru).lower().strip()
+    
+    # 1. Birebir eşleşme varsa direkt kabul et
+    if temiz in selamlamalar:
+        return True
+        
+    # 2. Birebir yoksa yazım hatası arayalım (Örn: merdaba -> merhaba)
+    # cutoff=0.70 demek %70 ve üzeri benzerlikleri kabul et demektir.
+    benzerler = difflib.get_close_matches(temiz, selamlamalar, n=1, cutoff=0.70)
+    
+    if benzerler:
+        print(f"Yazım hatası düzeltildi: '{temiz}' -> '{benzerler[0]}' olarak algılandı.")
+        return True
+        
+    return False
+
+def anlamli_kelimeleri_cikar(soru: str) -> list:
+    temiz = normalize_metin(soru)
+    
+    # Yasaklı kelimeler (stop-words) listesini AboneSepeti bağlamına uygun şekilde genişlettik
+    yasakli = [
+        "bir", "ile", "için", "nasıl", "neden", "hangi", "hakkında", 
+        "bilgi", "almak", "istiyorum", "istiyoruz", "var", "mı", "mi", 
+        "mu", "mü", "lütfen", "yardım", "eder", "misiniz", "bana", 
+        "ilgili", "dair", "şey", "yapabilirim", "olur", "istiyor"
+    ]
+    
+    kelimeler = temiz.split()
+    # Hem 2 harften büyükleri alıyoruz hem de yasaklı listede olmayanları
+    return [k for k in kelimeler if len(k) > 2 and k not in yasakli]
+
 # ==========================================
 # MERKEZİ RAG MOTORU
 # ==========================================
@@ -147,6 +233,9 @@ def cevabi_getir(kullanici_sorusu: str) -> str:
 
     if not temiz_kullanici_sorusu:                                
         return "Lütfen sormak istediğiniz konuyu biraz daha detaylandırarak yazınız."
+    
+    if karsilama_mesaji_mi(temiz_kullanici_sorusu):
+        return "Merhaba! Size AboneSepeti ile ilgili konularda nasıl yardımcı olabilirim?"
 
     if not soru_mantikli_mi(temiz_kullanici_sorusu):
         return "Sorunuzu tam olarak anlayamadım. Lütfen sorunuzu daha açık ve anlaşılır şekilde yazınız."
@@ -175,15 +264,24 @@ def cevabi_getir(kullanici_sorusu: str) -> str:
         bulunan_cevap = sonuclar['documents'][0][0]
         mesafe = sonuclar['distances'][0][0] 
         
-        if mesafe > 0.35:
-            yonlendirme = musteri_hizmetlerine_yonlendir()
-            return f"Bu konuyla ilgili kılavuzda net bir bilgi bulamadım. {yonlendirme}"
-        else:
+        # --- YENİ HİBRİT SKORLAMA MANTIĞI ---
+        taban_skor = kosinus_mesafesinden_taban_skor(mesafe)
+        anlamli_kelimeler = anlamli_kelimeleri_cikar(temiz_kullanici_sorusu)
+        nihai_skor = hesapla_rerank_skoru(bulunan_cevap, taban_skor, anlamli_kelimeler)
+        
+        ESIK_DEGER = 40.0 
+        
+        if nihai_skor >= ESIK_DEGER:
+            # Skor yüksek, cevap verilebilir
             insansi_cevap = re.sub(r'(?i)^\s*passage:\s*', '', bulunan_cevap)
             insansi_cevap = re.sub(r'(?i)^\s*madde\s*\d*\s*(f[ıi]kra\s*\d*)?\s*[.:;,-]?\s*', '', insansi_cevap)
             return insansi_cevap.strip()
+        else:
+            # Skor düşük, konu dışı veya eşleşme zayıf
+            return "Üzgünüm, sorduğunuz soruyla ilgili bir yanıt döndüremiyorum."
     else:
         return "Sorunuza ait bilgiye ulaşılamadı. Lütfen farklı kelimelerle tekrar deneyiniz."
+  
 
 # ==========================================
 # FASTAPI WEB SERVİSİ

@@ -142,7 +142,7 @@ class _HomeScreenState extends State<HomeScreen> {
   // API'DEN BOT CEVABI ALMA
   // ---------------------------------------------------------------------------
 
-  Future<void> _fetchBotAnswer(String userText) async {
+ Future<void> _fetchBotAnswer(String userText) async {
     try {
       final response = await ApiService.sendMessage(userText);
 
@@ -151,12 +151,39 @@ class _HomeScreenState extends State<HomeScreen> {
       final cleanedResponse = _cleanApiResponse(response);
 
       setState(() {
+        // API'den gelen asıl cevabı ekrana basıyoruz
         _messages.add({'sender': 'bot', 'text': cleanedResponse});
-        _messages.add({
-          'sender': 'bot',
-          'text': 'Yanıt yeterli oldu mu? (Evet / Hayır)',
-        });
-        _waitingFor = 'answer';
+
+        // EĞER PYTHON BOT "ÜZGÜNÜM" VEYA "MERHABA" DEDİYSE FARKLI DAVRAN:
+        if (cleanedResponse.contains('Üzgünüm, sorduğunuz soruyla ilgili')) {
+          
+          if (!_isWorkingHours()) {
+            _messages.add({
+              'sender': 'bot',
+              'text': 'Şu anda mesai saatleri dışındayız. Destek / Şikayet Formu doldurmak ister misiniz? (Evet / Hayır)',
+            });
+            _waitingFor = 'support';
+          } else {
+            _messages.add({
+              'sender': 'bot',
+              'text': 'Dilerseniz Müşteri Temsilcimize 0850 XXX XX XX numarasından ulaşabilirsiniz. Başka bir sorunuz var mı? (Evet / Hayır)',
+            });
+            _waitingFor = 'another';
+          }
+
+        } 
+        else if (cleanedResponse.contains('Merhaba! Size AboneSepeti ile ilgili')) {
+          // Eğer karşılama mesajı döndüyse ekstra bir şey sormaya gerek yok
+          _waitingFor = null;
+        } 
+        else {
+          // NORMAL İŞLEYİŞ: Bot mantıklı bir cevap bulduysa
+          _messages.add({
+            'sender': 'bot',
+            'text': 'Yanıt yeterli oldu mu? (Evet / Hayır)',
+          });
+          _waitingFor = 'answer';
+        }
       });
       _scrollToBottom();
     } catch (e) {
@@ -195,13 +222,17 @@ class _HomeScreenState extends State<HomeScreen> {
     if (_waitingFor == 'answer') {
       if (lowerText.contains('evet')) {
         setState(() {
-          _messages.add({'sender': 'bot', 'text': 'Başka sorunuz var mı?'});
-          _waitingFor = 'another';
+          // Başka soru sormak yerine teşekkür edip görüşmeyi sonlandırıyoruz
+          _messages.add({
+            'sender': 'bot', 
+            'text': 'Size yardımcı olabildiğime çok sevindim! Bizi tercih ettiğiniz için teşekkür eder, iyi günler dileriz. 😊'
+          });
+          // Bekleme durumunu sıfırlayarak botu başlangıç moduna döndürüyoruz
+          _waitingFor = null;
         });
         _scrollToBottom();
         return;
-      } else if (lowerText.contains('hayır') || lowerText.contains('hayir')) {
-        if (!_isWorkingHours()) {
+      } else if (lowerText.contains('hayır') || lowerText.contains('hayir')) {  if (!_isWorkingHours()) {
           setState(() {
             _messages.add({
               'sender': 'bot',
